@@ -99,3 +99,10 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+
+# custom additions
+data/
+log.txt
+tvtk/
+.idea/
