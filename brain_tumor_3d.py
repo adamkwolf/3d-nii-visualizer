@@ -278,7 +278,6 @@ def add_mri_object(nii_renderer, nii_file, color=(1, 1, 0.9), opacity=1.0, thres
 
 
 if __name__ == "__main__":
-    # create renderer, window, and interactor
     renderer, render_window, interactor = create_renderer_window_interactor()
     render_window.AddRenderer(renderer)
     interactor.SetRenderWindow(render_window)
