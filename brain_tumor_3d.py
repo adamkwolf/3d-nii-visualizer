@@ -1,4 +1,5 @@
 import vtk
+from PyQt5 import QtCore, QtGui
 
 # settings
 TUMOR_COLOR = (0.8, 0, 0)
