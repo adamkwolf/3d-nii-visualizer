@@ -1,5 +1,9 @@
 import vtk
-from PyQt5 import QtCore, QtGui
+import PyQt5.QtWidgets as QtWidgets
+import PyQt5.QtGui as QtGui
+import PyQt5.Qt as Qt
+from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+import sys
 
 # settings
 TUMOR_COLOR = (0.8, 0, 0)
@@ -198,11 +202,11 @@ def transform_and_clip_planes(object, volume, volume_mapper, image_actor):
     return object_center
 
 
-def add_to_view(nii_renderer, volume, nii_object, image_actor):
+def add_to_view(nii_renderer, nii_render_window, volume, nii_object, image_actor):
     nii_renderer.AddViewProp(volume)
     nii_renderer.AddViewProp(nii_object)
     nii_renderer.AddViewProp(image_actor)
-    render_window.Render()
+    nii_render_window.Render()
 
 
 def create_rotation_cones(nii_renderer):
@@ -235,13 +239,6 @@ def add_object_picker(locator):
     picker.AddLocator(locator)
 
 
-def create_renderer_window_interactor():
-    nii_renderer = vtk.vtkRenderer()
-    nii_render_window = vtk.vtkRenderWindow()
-    nii_interactor = vtk.vtkRenderWindowInteractor()  # nothing goes here
-    return nii_renderer, nii_render_window, nii_interactor
-
-
 def add_volume_rendering(reader):
     volume_mapper = create_gpu_volume_ray_cast_mapper(reader)
     volume_color = create_volume_color()
@@ -257,7 +254,6 @@ def add_surface_rendering(reader, color, opacity, threshold, smoothness):
     reducer = create_polygon_reducer(actor_extractor)
     smoother = create_smoother(reducer, smoothness)
     normals = create_normals(smoother)
-    # https://www.vtk.org/doc/nightly/html/classvtkStripper.html
     stripper = create_stripper(normals)
     actor_locator = create_locator(actor_extractor)
     actor_mapper = create_mapper(stripper)
@@ -266,23 +262,46 @@ def add_surface_rendering(reader, color, opacity, threshold, smoothness):
     return actor, actor_locator
 
 
-def add_mri_object(nii_renderer, nii_file, color=(1, 1, 0.9), opacity=1.0, threshold=200, smoothness=50):
+def add_mri_object(nii_renderer, nii_window, nii_file, color=(1, 1, 0.9), opacity=1.0, threshold=200, smoothness=50):
     nii_reader = read_volume(nii_file)
     nii_volume, nii_mapper = add_volume_rendering(nii_reader)
     nii_obj, nii_locator = add_surface_rendering(nii_reader, color, opacity, threshold, smoothness)
     nii_color_table = create_table()
     nii_color_mapper = create_image_color_map(nii_reader, nii_color_table)
     nii_image_actor = create_image_actor(nii_color_mapper)
-    # nii_obj_center = transform_and_clip_planes(nii_obj, nii_volume, nii_mapper, nii_image_actor)
-    add_to_view(nii_renderer, nii_volume, nii_obj, nii_image_actor)
+    add_to_view(nii_renderer, nii_window, nii_volume, nii_obj, nii_image_actor)
     add_object_picker(nii_locator)
 
 
+class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
+    def __init__(self, parent=None):
+        QtWidgets.QMainWindow.__init__(self, parent)
+        self.frame = QtWidgets.QFrame()
+        self.frame.setAutoFillBackground(True)
+        self.frame.setStyleSheet("background-color:black;")
+        self.vl = QtWidgets.QVBoxLayout()
+        self.vtkWidget = QVTKRenderWindowInteractor(self.frame)
+        self.vl.addWidget(self.vtkWidget)
+        self.renderer = vtk.vtkRenderer()
+        self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
+        self.interactor = self.vtkWidget.GetRenderWindow().GetInteractor()
+        self.render_window = self.vtkWidget.GetRenderWindow()
+        self.render_window.AddRenderer(self.renderer)
+        self.interactor.SetRenderWindow(self.render_window)
+
+        add_mri_object(self.renderer, self.render_window, BRAIN_FILE, BRAIN_COLOR, BRAIN_OPACITY, BRAIN_THRESHOLD,
+                       BRAIN_SMOOTHNESS)
+        add_mri_object(self.renderer, self.render_window, TUMOR_FILE, TUMOR_COLOR, TUMOR_OPACITY, TUMOR_THRESHOLD,
+                       TUMOR_SMOOTHNESS)
+
+        self.interactor.SetInteractorStyle(CustomInteractorStyle())
+        self.frame.setLayout(self.vl)
+        self.setCentralWidget(self.frame)
+        self.show()
+        self.interactor.Initialize()
+
+
 if __name__ == "__main__":
-    renderer, render_window, interactor = create_renderer_window_interactor()
-    render_window.AddRenderer(renderer)
-    interactor.SetRenderWindow(render_window)
-    add_mri_object(renderer, BRAIN_FILE, BRAIN_COLOR, BRAIN_OPACITY, BRAIN_THRESHOLD, BRAIN_SMOOTHNESS)
-    add_mri_object(renderer, TUMOR_FILE, TUMOR_COLOR, TUMOR_OPACITY, TUMOR_THRESHOLD, TUMOR_SMOOTHNESS)
-    interactor.SetInteractorStyle(CustomInteractorStyle())
-    interactor.Start()
+    app = QtWidgets.QApplication(sys.argv)
+    window = MainWindow()
+    sys.exit(app.exec_())
