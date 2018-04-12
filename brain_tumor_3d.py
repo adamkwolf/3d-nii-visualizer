@@ -1,4 +1,3 @@
-import math
 import vtk
 
 # settings
@@ -10,8 +9,6 @@ BRAIN_THRESHOLD = 200  # 200 works well for t1ce
 TUMOR_THRESHOLD = 2  # the truth.nii.gz files only have 2 colors, anything higher wont work!
 BRAIN_OPACITY = 0.1
 TUMOR_OPACITY = 1
-
-#  data/preprocessed/HGG/Brats17_CBICA_ANI_1
 BRAIN_FILE = "./data/preprocessed/HGG/Brats17_CBICA_AAB_1/t1ce.nii.gz"
 TUMOR_FILE = "./data/preprocessed/HGG/Brats17_CBICA_AAB_1/truth.nii.gz"
 
@@ -200,18 +197,14 @@ def transform_and_clip_planes(object, volume, volume_mapper, image_actor):
     return object_center
 
 
-def create_camera(renderer, center, volume, brain, image_actor):
-    renderer.AddViewProp(volume)
-    renderer.AddViewProp(brain)
-    renderer.AddViewProp(image_actor)
-    # camera = renderer.GetActiveCamera()
-    # camera.SetFocalPoint(center[0], center[1], center[2])
-    # camera.SetPosition(center[0] + 500, center[1] - 100, center[2] - 100)
-    # camera.SetViewUp(0, 0, -1)
+def add_to_view(nii_renderer, volume, nii_object, image_actor):
+    nii_renderer.AddViewProp(volume)
+    nii_renderer.AddViewProp(nii_object)
+    nii_renderer.AddViewProp(image_actor)
     render_window.Render()
 
 
-def create_rotation_cones(renderer):
+def create_rotation_cones(nii_renderer):
     cone_source = vtk.vtkConeSource()
     cone_source.CappingOn()
     cone_source.SetHeight(12)
@@ -229,46 +222,23 @@ def create_rotation_cones(renderer):
     green_cone.PickableOff()
     green_cone.SetMapper(cone_mapper)
     green_cone.GetProperty().SetColor(0, 1, 0)
-    renderer.AddViewProp(red_cone)
-    renderer.AddViewProp(green_cone)
+    nii_renderer.AddViewProp(red_cone)
+    nii_renderer.AddViewProp(green_cone)
     return red_cone, green_cone
 
 
 def add_object_picker(locator):
-    global picker
     picker = vtk.vtkVolumePicker()
     picker.SetTolerance(1e-6)
     picker.SetVolumeOpacityIsovalue(1)
     picker.AddLocator(locator)
 
 
-def point_cone(actor, nx, ny, nz):
-    actor.SetOrientation(0.0, 0.0, 0.0)
-    n = math.sqrt(nx ** 2 + ny ** 2 + nz ** 2)
-    if nx < 0.0:
-        actor.RotateWXYZ(180, 0, 1, 0)
-        n = -n
-    actor.RotateWXYZ(180, (nx + n) * 0.5, ny * 0.5, nz * 0.5)
-
-
-def move_cursor(interactive_renderer, event=""):
-    render_window.HideCursor()
-    x, y = interactive_renderer.GetEventPosition()
-    picker.Pick(x, y, 0, renderer)
-    p = picker.GetPickPosition()
-    n = picker.GetPickNormal()
-    red_cone.SetPosition(p[0], p[1], p[2])
-    point_cone(red_cone, n[0], n[1], n[2])
-    green_cone.SetPosition(p[0], p[1], p[2])
-    point_cone(green_cone, -n[0], -n[1], -n[2])
-    interactive_renderer.Render()
-
-
 def create_renderer_window_interactor():
-    renderer = vtk.vtkRenderer()
-    render_window = vtk.vtkRenderWindow()
-    interactor = vtk.vtkRenderWindowInteractor()  # nothing goes here
-    return renderer, render_window, interactor
+    nii_renderer = vtk.vtkRenderer()
+    nii_render_window = vtk.vtkRenderWindow()
+    nii_interactor = vtk.vtkRenderWindowInteractor()  # nothing goes here
+    return nii_renderer, nii_render_window, nii_interactor
 
 
 def add_volume_rendering(reader):
@@ -295,50 +265,24 @@ def add_surface_rendering(reader, color, opacity, threshold, smoothness):
     return actor, actor_locator
 
 
+def add_mri_object(nii_renderer, nii_file, color=(1, 1, 0.9), opacity=1.0, threshold=200, smoothness=50):
+    nii_reader = read_volume(nii_file)
+    nii_volume, nii_mapper = add_volume_rendering(nii_reader)
+    nii_obj, nii_locator = add_surface_rendering(nii_reader, color, opacity, threshold, smoothness)
+    nii_color_table = create_table()
+    nii_color_mapper = create_image_color_map(nii_reader, nii_color_table)
+    nii_image_actor = create_image_actor(nii_color_mapper)
+    # nii_obj_center = transform_and_clip_planes(nii_obj, nii_volume, nii_mapper, nii_image_actor)
+    add_to_view(nii_renderer, nii_volume, nii_obj, nii_image_actor)
+    add_object_picker(nii_locator)
+
+
 if __name__ == "__main__":
     # create renderer, window, and interactor
     renderer, render_window, interactor = create_renderer_window_interactor()
     render_window.AddRenderer(renderer)
     interactor.SetRenderWindow(render_window)
-
-    # read the volume
-    brain_reader = read_volume(BRAIN_FILE)
-    tumor_reader = read_volume(TUMOR_FILE)
-
-    # setup volume rendering
-    brain_volume, brain_mapper = add_volume_rendering(brain_reader)
-    tumor_volume, tumor_mapper = add_volume_rendering(tumor_reader)
-
-    # surface rendering
-    brain, brain_locator = add_surface_rendering(brain_reader, BRAIN_COLOR, BRAIN_OPACITY, BRAIN_THRESHOLD,
-                                                 BRAIN_SMOOTHNESS)
-    tumor, tumor_locator = add_surface_rendering(tumor_reader, TUMOR_COLOR, TUMOR_OPACITY, TUMOR_THRESHOLD,
-                                                 TUMOR_SMOOTHNESS)
-
-    # create image actor
-    brain_table = create_table()
-    tumor_table = create_table()
-    map_to_colors = create_image_color_map(brain_reader, brain_table)
-    tumor_map_to_colors = create_image_color_map(tumor_reader, tumor_table)
-    brain_image_actor = create_image_actor(map_to_colors)
-    tumor_image_actor = create_image_actor(tumor_map_to_colors)
-
-    # transform and clip planes
-    brain_center = transform_and_clip_planes(brain, brain_volume, brain_mapper, brain_image_actor)
-    tumor_center = transform_and_clip_planes(tumor, tumor_volume, tumor_mapper, tumor_image_actor)  # unused
-
-    # setup camera on objects
-    create_camera(renderer, brain_center, brain_volume, brain, brain_image_actor)
-    create_camera(renderer, tumor_center, tumor_volume, tumor, tumor_image_actor)
-
-    # create rotational cones
-    # red_cone, green_cone = create_rotation_cones(renderer)
-
-    # create brain picker
-    add_object_picker(brain_locator)
-    add_object_picker(tumor_locator)
-
-    # add movement observer and start interactor
-    # interactor.AddObserver("MouseMoveEvent", move_cursor)
+    add_mri_object(renderer, BRAIN_FILE, BRAIN_COLOR, BRAIN_OPACITY, BRAIN_THRESHOLD, BRAIN_SMOOTHNESS)
+    add_mri_object(renderer, TUMOR_FILE, TUMOR_COLOR, TUMOR_OPACITY, TUMOR_THRESHOLD, TUMOR_SMOOTHNESS)
     interactor.SetInteractorStyle(CustomInteractorStyle())
     interactor.Start()
