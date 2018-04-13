@@ -259,46 +259,83 @@ def add_surface_rendering(reader, color, opacity, threshold, smoothness):
     actor_mapper = create_mapper(stripper)
     actor_property = create_property(opacity, color)
     actor = create_actor(actor_mapper, actor_property)
-    return actor, actor_locator
+    return actor, actor_locator, actor_mapper, actor_property
 
 
 def add_mri_object(nii_renderer, nii_window, nii_file, color=(1, 1, 0.9), opacity=1.0, threshold=200, smoothness=50):
     nii_reader = read_volume(nii_file)
     nii_volume, nii_mapper = add_volume_rendering(nii_reader)
-    nii_obj, nii_locator = add_surface_rendering(nii_reader, color, opacity, threshold, smoothness)
+    nii_obj, nii_locator, actor_mapper, actor_property = add_surface_rendering(nii_reader, color, opacity, threshold,
+                                                                               smoothness)
     nii_color_table = create_table()
     nii_color_mapper = create_image_color_map(nii_reader, nii_color_table)
     nii_image_actor = create_image_actor(nii_color_mapper)
     add_to_view(nii_renderer, nii_window, nii_volume, nii_obj, nii_image_actor)
     add_object_picker(nii_locator)
+    return nii_obj, actor_mapper, actor_property
 
 
 class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self, parent)
+        self.renderer = vtk.vtkRenderer()
         self.frame = QtWidgets.QFrame()
         self.frame.setAutoFillBackground(True)
-        self.frame.setStyleSheet("background-color:black;")
-        self.vl = QtWidgets.QVBoxLayout()
         self.vtkWidget = QVTKRenderWindowInteractor(self.frame)
-        self.vl.addWidget(self.vtkWidget)
-        self.renderer = vtk.vtkRenderer()
         self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
         self.interactor = self.vtkWidget.GetRenderWindow().GetInteractor()
         self.render_window = self.vtkWidget.GetRenderWindow()
         self.render_window.AddRenderer(self.renderer)
         self.interactor.SetRenderWindow(self.render_window)
-
-        add_mri_object(self.renderer, self.render_window, BRAIN_FILE, BRAIN_COLOR, BRAIN_OPACITY, BRAIN_THRESHOLD,
-                       BRAIN_SMOOTHNESS)
-        add_mri_object(self.renderer, self.render_window, TUMOR_FILE, TUMOR_COLOR, TUMOR_OPACITY, TUMOR_THRESHOLD,
-                       TUMOR_SMOOTHNESS)
-
         self.interactor.SetInteractorStyle(CustomInteractorStyle())
+
+        self.brain, self.brain_mapper, self.brain_prop = add_mri_object(self.renderer, self.render_window, BRAIN_FILE,
+                                                                        BRAIN_COLOR, BRAIN_OPACITY, BRAIN_THRESHOLD,
+                                                                        BRAIN_SMOOTHNESS)
+        self.tumor, self.tumor_mapper, self.tumor_prop = add_mri_object(self.renderer, self.render_window, TUMOR_FILE,
+                                                                        TUMOR_COLOR, TUMOR_OPACITY, TUMOR_THRESHOLD,
+                                                                        TUMOR_SMOOTHNESS)
+
+        self.vl = QtWidgets.QVBoxLayout()
+        self.vl.addWidget(self.vtkWidget)
+        self.form = QtWidgets.QFormLayout()
+
+        self.brain_threshold_label = QtWidgets.QLabel("Brain Threshold:")
+        self.brain_opacity_label = QtWidgets.QLabel("Brain Opacity:")
+        self.brain_smoothness_label = QtWidgets.QLabel("Brain Smoothness:")
+        self.brain_color_label = QtWidgets.QLabel("Brain Color:")
+
+        self.brain_threshold_sp = QtWidgets.QSpinBox()
+        self.brain_threshold_sp.setValue(BRAIN_THRESHOLD)
+
+        self.brain_opacity_sp = QtWidgets.QDoubleSpinBox()
+        self.brain_opacity_sp.setSingleStep(0.1)
+        self.brain_opacity_sp.setValue(BRAIN_OPACITY)
+        self.brain_opacity_sp.setMaximum(1.0)
+        self.brain_opacity_sp.setMinimum(0.0)
+
+        self.brain_opacity_sp.valueChanged.connect(self.opacity_value_change)
+
+        self.brain_smoothness_sp = QtWidgets.QSpinBox()
+        self.brain_smoothness_sp.setValue(BRAIN_SMOOTHNESS)
+        # self.brain_color_sp = QtWidgets.QColorDialog()
+
+        self.vl.addLayout(self.form)
+        self.form.addRow(self.brain_threshold_label, self.brain_threshold_sp)
+        self.form.addRow(self.brain_opacity_label, self.brain_opacity_sp)
+        self.form.addRow(self.brain_smoothness_label, self.brain_smoothness_sp)
+
+        self.setLayout(self.vl)
+        self.setWindowTitle("3D Nifti Visualizer")
         self.frame.setLayout(self.vl)
         self.setCentralWidget(self.frame)
         self.show()
         self.interactor.Initialize()
+
+    def opacity_value_change(self):
+        opacity = round(self.brain_opacity_sp.value(), 2)
+        self.brain_prop.SetOpacity(opacity)
+        self.render_window.Render()
 
 
 if __name__ == "__main__":
