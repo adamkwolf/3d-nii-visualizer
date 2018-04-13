@@ -259,20 +259,20 @@ def add_surface_rendering(reader, color, opacity, threshold, smoothness):
     actor_mapper = create_mapper(stripper)
     actor_property = create_property(opacity, color)
     actor = create_actor(actor_mapper, actor_property)
-    return actor, actor_locator, actor_mapper, actor_property
+    return actor, actor_locator, actor_property, actor_extractor
 
 
 def add_mri_object(nii_renderer, nii_window, nii_file, color=(1, 1, 0.9), opacity=1.0, threshold=200, smoothness=50):
     nii_reader = read_volume(nii_file)
     nii_volume, nii_mapper = add_volume_rendering(nii_reader)
-    nii_obj, nii_locator, actor_mapper, actor_property = add_surface_rendering(nii_reader, color, opacity, threshold,
-                                                                               smoothness)
+    nii_obj, nii_locator, actor_property, actor_extractor = add_surface_rendering(nii_reader, color, opacity, threshold,
+                                                                 smoothness)
     nii_color_table = create_table()
     nii_color_mapper = create_image_color_map(nii_reader, nii_color_table)
     nii_image_actor = create_image_actor(nii_color_mapper)
     add_to_view(nii_renderer, nii_window, nii_volume, nii_obj, nii_image_actor)
     add_object_picker(nii_locator)
-    return nii_obj, actor_mapper, actor_property
+    return nii_obj, actor_property, actor_extractor
 
 
 class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
@@ -289,10 +289,10 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.interactor.SetRenderWindow(self.render_window)
         self.interactor.SetInteractorStyle(CustomInteractorStyle())
 
-        self.brain, self.brain_mapper, self.brain_prop = add_mri_object(self.renderer, self.render_window, BRAIN_FILE,
+        self.brain, self.brain_prop, self.brain_thresh = add_mri_object(self.renderer, self.render_window, BRAIN_FILE,
                                                                         BRAIN_COLOR, BRAIN_OPACITY, BRAIN_THRESHOLD,
                                                                         BRAIN_SMOOTHNESS)
-        self.tumor, self.tumor_mapper, self.tumor_prop = add_mri_object(self.renderer, self.render_window, TUMOR_FILE,
+        self.tumor, self.tumor_prop, self.tumor_thresh = add_mri_object(self.renderer, self.render_window, TUMOR_FILE,
                                                                         TUMOR_COLOR, TUMOR_OPACITY, TUMOR_THRESHOLD,
                                                                         TUMOR_SMOOTHNESS)
 
@@ -307,14 +307,17 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
 
         self.brain_threshold_sp = QtWidgets.QSpinBox()
         self.brain_threshold_sp.setValue(BRAIN_THRESHOLD)
+        self.brain_threshold_sp.setMinimum(100)
+        self.brain_threshold_sp.setMaximum(2000)
+        self.brain_threshold_sp.setSingleStep(50)
+        self.brain_threshold_sp.valueChanged.connect(self.brain_threshold_value_change)
 
         self.brain_opacity_sp = QtWidgets.QDoubleSpinBox()
         self.brain_opacity_sp.setSingleStep(0.1)
         self.brain_opacity_sp.setValue(BRAIN_OPACITY)
         self.brain_opacity_sp.setMaximum(1.0)
         self.brain_opacity_sp.setMinimum(0.0)
-
-        self.brain_opacity_sp.valueChanged.connect(self.opacity_value_change)
+        self.brain_opacity_sp.valueChanged.connect(self.brain_opacity_value_change)
 
         self.brain_smoothness_sp = QtWidgets.QSpinBox()
         self.brain_smoothness_sp.setValue(BRAIN_SMOOTHNESS)
@@ -332,9 +335,14 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.show()
         self.interactor.Initialize()
 
-    def opacity_value_change(self):
+    def brain_opacity_value_change(self):
         opacity = round(self.brain_opacity_sp.value(), 2)
         self.brain_prop.SetOpacity(opacity)
+        self.render_window.Render()
+
+    def brain_threshold_value_change(self):
+        threshold = self.brain_threshold_sp.value()
+        self.brain_thresh.SetValue(0, threshold)
         self.render_window.Render()
 
 
