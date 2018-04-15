@@ -386,7 +386,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
     def add_tumor_threshold_picker(self):
         self.tumor_threshold_sp = QtWidgets.QSpinBox()
         self.tumor_threshold_sp.setValue(TUMOR_THRESHOLD)
-        self.tumor_threschold_sp.setMinimum(1)
+        self.tumor_threshold_sp.setMinimum(1)
         self.tumor_threshold_sp.setMaximum(2)
         self.tumor_threshold_sp.setSingleStep(1)
         self.tumor_threshold_sp.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
