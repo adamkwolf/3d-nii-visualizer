@@ -18,6 +18,26 @@ BRAIN_FILE = "./data/preprocessed/HGG/Brats17_CBICA_AAB_1/t1ce.nii.gz"
 TUMOR_FILE = "./data/preprocessed/HGG/Brats17_CBICA_AAB_1/truth.nii.gz"
 
 
+class NiiSettings:
+    def __init__(self, file, color, opacity, threshold, smoothness):
+        self.file = file
+        self.color = color
+        self.opacity = opacity
+        self.threshold = threshold
+        self.smoothness = smoothness
+
+
+class NiiObject:
+    def __init__(self):
+        self.nii_obj = None
+        self.property = None
+        self.threshold = None
+        self.smoother = None
+        self.volume = None
+        self.locator = None
+        self.settings = None
+
+
 class CustomInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
     def __init__(self, parent=None):
         self.AddObserver("MiddleButtonPressEvent", self.middleButtonPressEvent)
@@ -249,30 +269,33 @@ def add_volume_rendering(reader):
     return new_volume, volume_mapper
 
 
-def add_surface_rendering(reader, color, opacity, threshold, smoothness):
-    actor_extractor = create_brain_extractor(reader, threshold)
+def add_surface_rendering(reader, nii_obj):
+    actor_extractor = create_brain_extractor(reader, nii_obj.settings.threshold)
     reducer = create_polygon_reducer(actor_extractor)
-    smoother = create_smoother(reducer, smoothness)
+    smoother = create_smoother(reducer, nii_obj.settings.smoothness)
     normals = create_normals(smoother)
     stripper = create_stripper(normals)
     actor_locator = create_locator(actor_extractor)
     actor_mapper = create_mapper(stripper)
-    actor_property = create_property(opacity, color)
+    actor_property = create_property(nii_obj.settings.opacity, nii_obj.settings.color)
     actor = create_actor(actor_mapper, actor_property)
-    return actor, actor_locator, actor_property, actor_extractor, smoother
+    nii_obj.nii_obj = actor
+    nii_obj.smoother = smoother
+    nii_obj.threshold = actor_extractor
+    nii_obj.locator = actor_locator
+    nii_obj.property = actor_property
 
 
-def add_mri_object(nii_renderer, nii_window, nii_file, color=(1, 1, 0.9), opacity=1.0, threshold=200, smoothness=50):
-    nii_reader = read_volume(nii_file)
+def add_mri_object(nii_renderer, nii_window, nii_obj):
+    nii_reader = read_volume(nii_obj.settings.file)
     nii_volume, nii_mapper = add_volume_rendering(nii_reader)
-    nii_obj, nii_locator, actor_property, actor_extractor, smoother = add_surface_rendering(nii_reader, color, opacity,
-                                                                                            threshold, smoothness)
+    add_surface_rendering(nii_reader, nii_obj)
     nii_color_table = create_table()
     nii_color_mapper = create_image_color_map(nii_reader, nii_color_table)
     nii_image_actor = create_image_actor(nii_color_mapper)
-    add_to_view(nii_renderer, nii_window, nii_volume, nii_obj, nii_image_actor)
-    add_object_picker(nii_locator)
-    return nii_obj, actor_property, actor_extractor, smoother
+    add_to_view(nii_renderer, nii_window, nii_volume, nii_obj.nii_obj, nii_image_actor)
+    add_object_picker(nii_obj.locator)
+    nii_obj.volume = nii_volume
 
 
 class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
@@ -280,6 +303,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         QtWidgets.QMainWindow.__init__(self, parent)
         self.setup()
         self.add_actors()
+        # transform_and_clip_planes(self.brain, )
 
         self.grid = QtWidgets.QGridLayout()
         self.form = QtWidgets.QFormLayout()
@@ -298,10 +322,6 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         #  add pickers to layout
         self.grid.addItem(self.form, 0, 0)
         self.grid.addWidget(self.vtkWidget, 0, 1)
-        self.grid.setAlignment(self.form, Qt.Qt.AlignLeft)
-        self.form.setAlignment(self.brain_threshold_sp, Qt.Qt.AlignLeft)
-        self.grid.setColumnStretch(0, 0)
-        self.grid.setRowStretch(0, 0)
 
         #  add to brain form
         self.form.addRow(QtWidgets.QLabel("Brain Threshold:"), self.brain_threshold_sp)
@@ -324,18 +344,13 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.interactor.Initialize()
 
     def add_actors(self):
-        self.brain, self.brain_prop, self.brain_thresh, self.brain_smoother = add_mri_object(self.renderer,
-                                                                                             self.render_window,
-                                                                                             BRAIN_FILE,
-                                                                                             BRAIN_COLOR, BRAIN_OPACITY,
-                                                                                             BRAIN_THRESHOLD,
-                                                                                             BRAIN_SMOOTHNESS)
-        self.tumor, self.tumor_prop, self.tumor_thresh, self.tumor_smoother = add_mri_object(self.renderer,
-                                                                                             self.render_window,
-                                                                                             TUMOR_FILE,
-                                                                                             TUMOR_COLOR, TUMOR_OPACITY,
-                                                                                             TUMOR_THRESHOLD,
-                                                                                             TUMOR_SMOOTHNESS)
+        self.brain = NiiObject()
+        self.brain.settings = NiiSettings(BRAIN_FILE, BRAIN_COLOR, BRAIN_OPACITY, BRAIN_THRESHOLD, BRAIN_SMOOTHNESS)
+        add_mri_object(self.renderer, self.render_window, self.brain)
+
+        self.tumor = NiiObject()
+        self.tumor.settings = NiiSettings(TUMOR_FILE, TUMOR_COLOR, TUMOR_OPACITY, TUMOR_THRESHOLD, TUMOR_SMOOTHNESS)
+        add_mri_object(self.renderer, self.render_window, self.tumor)
 
     def setup(self):
         self.renderer = vtk.vtkRenderer()
@@ -403,33 +418,33 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
     # todo: brain settings
     def brain_opacity_value_changed(self):
         opacity = round(self.brain_opacity_sp.value(), 2)
-        self.brain_prop.SetOpacity(opacity)
+        self.brain.property.SetOpacity(opacity)
         self.render_window.Render()
 
     def brain_threshold_value_changed(self):
         threshold = self.brain_threshold_sp.value()
-        self.brain_thresh.SetValue(0, threshold)
+        self.brain.threshold.SetValue(0, threshold)
         self.render_window.Render()
 
     def brain_smoothness_value_changed(self):
         smoothness = self.brain_smoothness_sp.value()
-        self.brain_smoother.SetNumberOfIterations(smoothness)
+        self.brain.smoother.SetNumberOfIterations(smoothness)
         self.render_window.Render()
 
     # todo: tumor settings
     def tumor_opacity_value_changed(self):
         opacity = round(self.tumor_opacity_sp.value(), 2)
-        self.tumor_prop.SetOpacity(opacity)
+        self.tumor.property.SetOpacity(opacity)
         self.render_window.Render()
 
     def tumor_threshold_value_changed(self):
         threshold = self.tumor_threshold_sp.value()
-        self.tumor_thresh.SetValue(0, threshold)
+        self.tumor.threshold.SetValue(0, threshold)
         self.render_window.Render()
 
     def tumor_smoothness_value_changed(self):
         smoothness = self.tumor_smoothness_sp.value()
-        self.tumor_smoother.SetNumberOfIterations(smoothness)
+        self.tumor.smoother.SetNumberOfIterations(smoothness)
         self.render_window.Render()
 
 
