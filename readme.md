@@ -1,3 +1,6 @@
+# 3D Nifti Visualizer
+<img src="https://github.com/adamkwolf/3d-nii-visualizer/blob/master/images/visualization.png" style="width: 100px;"/>
+
 ### Setup
 1. Install `virtualenv` and create a new environemnt <env-name>
 2. Activate the environemnt `source <env-name>/bin/activate`
