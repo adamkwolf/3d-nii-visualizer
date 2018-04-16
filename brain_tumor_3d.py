@@ -65,54 +65,7 @@ def create_gpu_volume_ray_cast_mapper(reader):
     volume_mapper = vtk.vtkGPUVolumeRayCastMapper()
     volume_mapper.SetInputConnection(reader.GetOutputPort())
     volume_mapper.CroppingOn()
-    # volume_mapper.SetCroppingRegionPlanes((-1000, 1000, -1000, 1000, -1000, 1000))  # remove to hide  crap
     return volume_mapper
-
-
-def create_volume_color():
-    volume_color = vtk.vtkColorTransferFunction()
-    volume_color.AddRGBPoint(0, 0.0, 0.0, 0.0)
-    volume_color.AddRGBPoint(180, 0.3, 0.1, 0.2)
-    volume_color.AddRGBPoint(1000, 1.0, 0.7, 0.6)
-    volume_color.AddRGBPoint(2000, 1.0, 1.0, 0.9)
-    return volume_color
-
-
-def create_volume_scalar_opacity():
-    volume_scalar_opacity = vtk.vtkPiecewiseFunction()
-    volume_scalar_opacity.AddPoint(0, 0.0)
-    volume_scalar_opacity.AddPoint(180, 0.0)
-    volume_scalar_opacity.AddPoint(1000, 0.2)
-    volume_scalar_opacity.AddPoint(2000, 0.8)
-    return volume_scalar_opacity
-
-
-def create_volume_gradient_opacity():
-    volume_gradient_opacity = vtk.vtkPiecewiseFunction()
-    volume_gradient_opacity.AddPoint(0, 0.0)
-    volume_gradient_opacity.AddPoint(90, 0.5)
-    volume_gradient_opacity.AddPoint(1000, 1.0)
-    return volume_gradient_opacity
-
-
-def create_volume_property(volume_color, volume_scalar_opacity, volume_gradient_opacity):
-    volume_property = vtk.vtkVolumeProperty()
-    volume_property.SetColor(0, volume_color)
-    volume_property.SetScalarOpacity(0, volume_scalar_opacity)
-    volume_property.SetGradientOpacity(0, volume_gradient_opacity)
-    volume_property.SetInterpolationTypeToLinear()
-    volume_property.ShadeOff(0)
-    volume_property.SetAmbient(0, 0.6)
-    volume_property.SetDiffuse(0, 0.6)
-    volume_property.SetSpecular(0, 0.1)
-    return volume_property
-
-
-def create_volume(volume_mapper, volume_property):
-    volume = vtk.vtkVolume()
-    volume.SetMapper(volume_mapper)
-    volume.SetProperty(volume_property)  # if issues then this is problem
-    return volume
 
 
 def create_brain_extractor(reader, threshold):
@@ -260,12 +213,9 @@ def add_object_picker(locator):
 
 def add_volume_rendering(reader):
     volume_mapper = create_gpu_volume_ray_cast_mapper(reader)
-    volume_color = create_volume_color()
-    volume_scalar_opacity = create_volume_scalar_opacity()
-    volume_gradient_opacity = create_volume_gradient_opacity()
-    volume_property = create_volume_property(volume_color, volume_scalar_opacity, volume_gradient_opacity)
-    new_volume = create_volume(volume_mapper, volume_property)
-    return new_volume, volume_mapper
+    volume = vtk.vtkVolume()
+    volume.SetMapper(volume_mapper)
+    return volume, volume_mapper
 
 
 def add_surface_rendering(reader, nii_obj):
