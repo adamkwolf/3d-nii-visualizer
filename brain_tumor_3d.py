@@ -14,8 +14,11 @@ BRAIN_THRESHOLD = 200          # 200 works well for t1ce
 TUMOR_THRESHOLD = 2            # tumors only have 2 colors, anything higher wont work!
 BRAIN_OPACITY = 0.1
 TUMOR_OPACITY = 1
-BRAIN_FILE = "./sample_data/t1ce.nii.gz"
-TUMOR_FILE = "./sample_data/truth.nii.gz"
+# BRAIN_FILE = "./sample_data/t1ce.nii.gz"
+BRAIN_FILE = "./data/original/HGG/Brats17_2013_2_1/Brats17_2013_2_1_t1ce.nii.gz"
+# TUMOR_FILE = "./sample_data/truth.nii.gz"
+TUMOR_FILE = "./data/original/HGG/Brats17_2013_2_1/Brats17_2013_2_1_seg.nii.gz"
+
 
 
 class NiiSettings:
@@ -62,6 +65,7 @@ def read_volume(file_name):
     reader.SetFileNameSliceOffset(1)
     reader.SetDataByteOrderToBigEndian()
     reader.SetFileName(file_name)
+    print(reader)
     return reader
 
 
