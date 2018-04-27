@@ -6,19 +6,18 @@ from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 import sys
 
 # settings
-TUMOR_COLOR = (0.8, 0, 0)      # RGB percentages
+TUMOR_COLOR = (0.8, 0, 0)  # RGB percentages
 BRAIN_COLOR = (1.0, 0.9, 0.9)  # RGB percentages
 BRAIN_SMOOTHNESS = 50
 TUMOR_SMOOTHNESS = 500
-BRAIN_THRESHOLD = 200          # 200 works well for t1ce
-TUMOR_THRESHOLD = 2            # tumors only have 2 colors, anything higher wont work!
+BRAIN_THRESHOLD = 200  # 200 works well for t1ce
+TUMOR_THRESHOLD = 2  # tumors only have 2 colors, anything higher wont work!
 BRAIN_OPACITY = 0.1
 TUMOR_OPACITY = 1
-# BRAIN_FILE = "./sample_data/t1ce.nii.gz"
 BRAIN_FILE = "./data/original/HGG/Brats17_2013_2_1/Brats17_2013_2_1_t1ce.nii.gz"
-# TUMOR_FILE = "./sample_data/truth.nii.gz"
 TUMOR_FILE = "./data/original/HGG/Brats17_2013_2_1/Brats17_2013_2_1_seg.nii.gz"
-
+BG_CSS = "background-color: #f4f4f4;"
+GROUPBOX_CSS = "QGroupBox::title { margin: 2px; background-color: rgba(0,0,0,0.0) }; margin-top: 3px;"
 
 
 class NiiSettings:
@@ -38,26 +37,8 @@ class NiiObject:
         self.property = None
         self.threshold = None
         self.smoother = None
-        self.volume = None
-        self.volume_mapper = None
         self.locator = None
         self.settings = None
-
-
-class CustomInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
-    def __init__(self, parent=None):
-        self.AddObserver("MiddleButtonPressEvent", self.middleButtonPressEvent)
-        self.AddObserver("MiddleButtonReleaseEvent", self.middleButtonReleaseEvent)
-
-    def middleButtonPressEvent(self, obj, event):
-        print("Middle Button pressed")
-        self.OnMiddleButtonDown()
-        return
-
-    def middleButtonReleaseEvent(self, obj, event):
-        print("Middle Button released")
-        self.OnMiddleButtonUp()
-        return
 
 
 def read_volume(file_name):
@@ -67,14 +48,6 @@ def read_volume(file_name):
     reader.SetFileName(file_name)
     print(reader)
     return reader
-
-
-def create_gpu_volume_ray_cast_mapper(reader):
-    volume_mapper = vtk.vtkGPUVolumeRayCastMapper()
-    volume_mapper.SetInputConnection(reader.GetOutputPort())
-    volume_mapper.CroppingOn()
-    # volume_mapper.SetCroppingRegionPlanes((0.0, 150.0, 0.0, 200.0, 0.0, 150.0))  # added
-    return volume_mapper
 
 
 def create_brain_extractor(reader, threshold):
@@ -123,6 +96,8 @@ def create_mapper(stripper):
     brain_mapper = vtk.vtkPolyDataMapper()
     brain_mapper.SetInputConnection(stripper.GetOutputPort())
     brain_mapper.ScalarVisibilityOff()
+    # brain_mapper.SetLookupTable(create_tumor_table())
+    brain_mapper.Update()
     return brain_mapper
 
 
@@ -140,27 +115,43 @@ def create_actor(mapper, prop):
     return actor
 
 
+def create_tumor_table():
+    m_mask_opacity = 1
+    brain_lut = vtk.vtkLookupTable()
+    brain_lut.SetRange(0, 4)
+    brain_lut.SetRampToLinear()
+    brain_lut.SetValueRange(0, 1)
+    brain_lut.SetHueRange(0, 0)
+    brain_lut.SetSaturationRange(0, 0)
+
+    brain_lut.SetNumberOfTableValues(10)
+    brain_lut.SetTableRange(0, 9)
+    brain_lut.SetTableValue(0, 0, 0, 0, 0)
+    brain_lut.SetTableValue(1, 1, 0, 0, m_mask_opacity)  # RED
+    brain_lut.SetTableValue(2, 0, 1, 0, m_mask_opacity)  # GREEN
+    brain_lut.SetTableValue(3, 1, 1, 0, m_mask_opacity)  # YELLOW
+    brain_lut.SetTableValue(4, 0, 0, 1, m_mask_opacity)  # BLUE
+    brain_lut.SetTableValue(5, 1, 0, 1, m_mask_opacity)  # MAGENTA
+    brain_lut.SetTableValue(6, 0, 1, 1, m_mask_opacity)  # CYAN
+    brain_lut.SetTableValue(7, 1, 0.5, 0.5, m_mask_opacity)  # RED_2
+    brain_lut.SetTableValue(8, 0.5, 1, 0.5, m_mask_opacity)  # GREEN_2
+    brain_lut.SetTableValue(9, 0.5, 0.5, 1, m_mask_opacity)  # BLUE_2
+    brain_lut.Build()
+    return brain_lut
+
+
 def create_table():
-    table = vtk.vtkLookupTable()  # TODO
-    table.SetRange(0, 2000)
+    table = vtk.vtkLookupTable()
+    table.SetRange(0.0, 1675.0)  # +1
     table.SetRampToLinear()
     table.SetValueRange(0, 1)
     table.SetHueRange(0, 0)
     table.SetSaturationRange(0, 0)
-    return table
 
 
-def create_image_color_map(reader, table):
-    map_to_colors = vtk.vtkImageMapToColors()
-    map_to_colors.SetInputConnection(reader.GetOutputPort())
-    map_to_colors.SetLookupTable(table)
-    map_to_colors.Update()
-    return map_to_colors
-
-
-def create_image_actor(map_to_colors):
+def create_image_actor(reader):
     image_actor = vtk.vtkImageActor()
-    image_actor.GetMapper().SetInputConnection(map_to_colors.GetOutputPort())
+    image_actor.GetMapper().SetInputConnection(reader.GetOutputPort())
     image_actor.SetDisplayExtent((0, 0, 0, 0, 0, 0))
     return image_actor
 
@@ -171,7 +162,7 @@ def transform_and_clip_planes(actor, volume, volume_mapper, image_actor):
 
     volume.SetUserTransform(transform)
     actor.SetUserTransform(transform)
-    image_actor.SetUserTransform(transform)  # might break something
+    image_actor.SetUserTransform(transform)
 
     object_center = volume.GetCenter()
 
@@ -187,18 +178,10 @@ def transform_and_clip_planes(actor, volume, volume_mapper, image_actor):
     volume_mapper.AddClippingPlane(brain_clip)  # SPLITS BRAIN IN HALF dumb
 
 
-def add_to_view(nii_renderer, nii_render_window, volume, nii_object, image_actor):
-    nii_renderer.AddViewProp(volume)
+def add_to_view(nii_renderer, nii_render_window, nii_object, image_actor):
     nii_renderer.AddViewProp(nii_object)
     nii_renderer.AddViewProp(image_actor)
     nii_render_window.Render()
-
-
-def add_volume_rendering(reader):
-    volume_mapper = create_gpu_volume_ray_cast_mapper(reader)
-    volume = vtk.vtkVolume()
-    volume.SetMapper(volume_mapper)
-    return volume, volume_mapper
 
 
 def add_surface_rendering(reader, nii_obj):
@@ -220,16 +203,29 @@ def add_surface_rendering(reader, nii_obj):
 
 def add_mri_object(nii_renderer, nii_window, nii_obj):
     nii_reader = read_volume(nii_obj.settings.file)
-    nii_volume, nii_mapper = add_volume_rendering(nii_reader)
     add_surface_rendering(nii_reader, nii_obj)
-    nii_color_table = create_table()
-    nii_color_mapper = create_image_color_map(nii_reader, nii_color_table)
-    nii_image_actor = create_image_actor(nii_color_mapper)
-    add_to_view(nii_renderer, nii_window, nii_volume, nii_obj.actor, nii_image_actor)
-    nii_obj.volume = nii_volume
-    nii_obj.volume_mapper = nii_mapper
+    nii_image_actor = create_image_actor(nii_reader)
+    add_to_view(nii_renderer, nii_window, nii_obj.actor, nii_image_actor)
     nii_obj.image_actor = nii_image_actor
     nii_obj.reader = nii_reader
+
+
+def create_label(label):
+    label = QtWidgets.QLabel(label)
+    label.setStyleSheet("background-color: rgba(0,0,0,0.0)")
+    return label
+
+
+def create_checkbox(label):
+    checkbox = QtWidgets.QCheckBox(label)
+    checkbox.setStyleSheet("background-color: rgba(0,0,0,0.0); padding-top: 3px")
+    return checkbox
+
+
+def create_radio_btn(label):
+    radio = QtWidgets.QRadioButton(label)
+    radio.setStyleSheet("background-color: rgba(0,0,0,0.0)")
+    return radio
 
 
 class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
@@ -265,8 +261,9 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
 
         self.renderer.AddViewProp(image_slice)
         self.grid = QtWidgets.QGridLayout()
-        self.form = QtWidgets.QFormLayout()
-        self.form.setAlignment(Qt.Qt.AlignLeft)
+
+        # projection
+        self.brain_projection_cb = self.add_brain_projection()
 
         # brain pickers
         self.brain_threshold_sp = self.add_brain_threshold_picker()
@@ -279,24 +276,48 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.tumor_smoothness_sp = self.add_tumor_smoothness_picker()
 
         #  add pickers to layout
-        self.grid.addItem(self.form, 0, 0)
-        self.grid.addWidget(self.vtk_widget, 0, 1)
+        import os
+        object_group_box = QtWidgets.QGroupBox(
+            "Brain: " + os.path.basename(BRAIN_FILE) + "          Tumor: " + os.path.basename(TUMOR_FILE))
+        object_group_box.setStyleSheet(GROUPBOX_CSS)
+        object_layout = QtWidgets.QVBoxLayout()
+        object_layout.addWidget(self.vtk_widget)
+        object_group_box.setLayout(object_layout)
+        self.grid.addWidget(object_group_box, 0, 2, 5, 5)
 
-        #  add to brain form
-        self.form.addRow(QtWidgets.QLabel("Brain Threshold"), self.brain_threshold_sp)
-        self.form.addRow(QtWidgets.QLabel("Brain Opacity"), self.brain_opacity_sp)
-        self.form.addRow(QtWidgets.QLabel("Brain Smoothness"), self.brain_smoothness_sp)
+        brain_group_box = QtWidgets.QGroupBox("Brain Settings")
+        brain_group_box.setStyleSheet(GROUPBOX_CSS)
+        brain_group_layout = QtWidgets.QGridLayout()
 
-        # add to tumor form
-        self.form.addRow(QtWidgets.QLabel("Tumor Threshold"), self.tumor_threshold_sp)
-        self.form.addRow(QtWidgets.QLabel("Tumor Opacity"), self.tumor_opacity_sp)
-        self.form.addRow(QtWidgets.QLabel("Tumor Smoothness"), self.tumor_smoothness_sp)
-        self.form.setLabelAlignment(Qt.Qt.AlignLeft)
-        self.form.setFormAlignment(Qt.Qt.AlignRight)
-        self.form.setSpacing(5)
+        brain_group_layout.addWidget(create_label("Brain Threshold"), 0, 0)
+        brain_group_layout.addWidget(create_label("Brain Opacity"), 1, 0)
+        brain_group_layout.addWidget(create_label("Brain Smoothness"), 2, 0)
+        brain_group_layout.addWidget(create_label("Brain Projection"), 3, 0)
+        brain_group_layout.addWidget(self.brain_threshold_sp, 0, 1)
+        brain_group_layout.addWidget(self.brain_opacity_sp, 1, 1)
+        brain_group_layout.addWidget(self.brain_smoothness_sp, 2, 1)
+        brain_group_layout.addWidget(self.brain_projection_cb, 3, 1)
+        brain_group_box.setLayout(brain_group_layout)
+        self.grid.addWidget(brain_group_box, 0, 0, 1, 2)
 
-        self.brain_projection_cb = self.add_brain_projection()
-        self.form.addRow(QtWidgets.QLabel("Show Projection"), self.brain_projection_cb)
+        tumor_color_group_box = QtWidgets.QGroupBox("Tumor Settings")
+        tumor_color_group_box.setStyleSheet(GROUPBOX_CSS)
+        tumor_color_group_layout = QtWidgets.QGridLayout()
+        tumor_color_group_layout.addWidget(create_label("Tumor Opacity"), 0, 0)
+        tumor_color_group_layout.addWidget(create_label("Tumor Smoothness"), 1, 0)
+        tumor_color_group_layout.addWidget(self.tumor_opacity_sp, 0, 1)
+        tumor_color_group_layout.addWidget(self.tumor_smoothness_sp, 1, 1)
+        tumor_color_group_layout.addWidget(create_radio_btn("Single Color"), 2, 0)
+        tumor_color_group_layout.addWidget(create_radio_btn("Multi Color"), 2, 1)
+        tumor_color_group_layout.addWidget(self.create_new_seperator(), 3, 0, 1, 2)
+        tumor_color_group_layout.addWidget(create_checkbox("Label 1"), 4, 0)
+        tumor_color_group_layout.addWidget(create_checkbox("Label 2"), 4, 1)
+        tumor_color_group_layout.addWidget(create_checkbox("Label 3"), 5, 0)
+        tumor_color_group_layout.addWidget(create_checkbox("Label 4"), 5, 1)
+        # tumor_color_group_layout.addWidget(create_label("Tumor Threshold"), 6, 0)
+        # tumor_color_group_layout.addWidget(self.tumor_threshold_sp, 6, 1)
+        tumor_color_group_box.setLayout(tumor_color_group_layout)
+        self.grid.addWidget(tumor_color_group_box, 1, 0, 2, 2)
 
         #  set layout and show
         self.setWindowTitle("3D Nifti Visualizer")
@@ -305,11 +326,18 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.show()
         self.interactor.Initialize()
 
+    def create_new_seperator(self):
+        horizontal_line = QtWidgets.QWidget()
+        horizontal_line.setFixedHeight(1)
+        horizontal_line.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        horizontal_line.setStyleSheet("background-color: #c8c8c8;")
+        return horizontal_line
+
     @staticmethod
     def setup():
         renderer = vtk.vtkRenderer()
-        # renderer.SetBackground(1, 1, 1)
         frame = QtWidgets.QFrame()
+        frame.setStyleSheet(BG_CSS + "color: #444;")
         vtk_widget = QVTKRenderWindowInteractor()
         interactor = vtk_widget.GetRenderWindow().GetInteractor()
         render_window = vtk_widget.GetRenderWindow()
@@ -318,7 +346,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         vtk_widget.GetRenderWindow().AddRenderer(renderer)
         render_window.AddRenderer(renderer)
         interactor.SetRenderWindow(render_window)
-        interactor.SetInteractorStyle(CustomInteractorStyle())
+        interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
         return renderer, frame, vtk_widget, interactor, render_window
 
     def add_brain_opacity_picker(self):
@@ -360,8 +388,8 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
     def add_tumor_threshold_picker(self):
         tumor_threshold_sp = QtWidgets.QSpinBox()
         tumor_threshold_sp.setValue(TUMOR_THRESHOLD)
-        tumor_threshold_sp.setMinimum(1)
-        tumor_threshold_sp.setMaximum(2)
+        tumor_threshold_sp.setMinimum(0)
+        tumor_threshold_sp.setMaximum(6)
         tumor_threshold_sp.setSingleStep(1)
         tumor_threshold_sp.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         tumor_threshold_sp.valueChanged.connect(self.tumor_threshold_value_changed)
@@ -377,8 +405,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         return tumor_smoothness_sp
 
     def add_brain_projection(self):
-        projection_cb = QtWidgets.QCheckBox()
-        projection_cb.setStyleSheet("padding-top: 3px")
+        projection_cb = create_checkbox("")  # prob no label needed?
         projection_cb.clicked.connect(self.brain_projection_value_changed)
         return projection_cb
 
