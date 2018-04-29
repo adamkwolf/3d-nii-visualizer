@@ -4,16 +4,18 @@ import PyQt5.QtCore as Qt
 import PyQt5.QtGui as QtGui
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 import sys
+import threading
+import time
 
 # settings
 TUMOR_COLOR = (0.8, 0, 0)  # RGB percentages
 BRAIN_COLOR = (1.0, 0.9, 0.9)  # RGB percentages
 BRAIN_SMOOTHNESS = 50
 TUMOR_SMOOTHNESS = 500
-BRAIN_THRESHOLD = 200  # 200 works well for t1ce
-TUMOR_THRESHOLD = 2  # tumors only have 2 colors, anything higher wont work!
+BRAIN_THRESHOLD = 200.0  # 200 works well for t1ce
+TUMOR_THRESHOLD = 2.0  # tumors only have 2 colors, anything higher wont work!
 BRAIN_OPACITY = 0.1
-TUMOR_OPACITY = 1
+TUMOR_OPACITY = 1.0
 BRAIN_FILE = "./data/original/HGG/Brats17_2013_2_1/Brats17_2013_2_1_t1ce.nii.gz"
 TUMOR_FILE = "./data/original/HGG/Brats17_2013_2_1/Brats17_2013_2_1_seg.nii.gz"
 BG_CSS = "background-color: #f4f4f4;"
@@ -309,7 +311,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         tumor_color_group_layout.addWidget(self.tumor_smoothness_sp, 1, 1)
         tumor_color_group_layout.addWidget(create_radio_btn("Single Color"), 2, 0)
         tumor_color_group_layout.addWidget(create_radio_btn("Multi Color"), 2, 1)
-        tumor_color_group_layout.addWidget(self.create_new_seperator(), 3, 0, 1, 2)
+        tumor_color_group_layout.addWidget(self.create_new_separator(), 3, 0, 1, 2)
         tumor_color_group_layout.addWidget(create_checkbox("Label 1"), 4, 0)
         tumor_color_group_layout.addWidget(create_checkbox("Label 2"), 4, 1)
         tumor_color_group_layout.addWidget(create_checkbox("Label 3"), 5, 0)
@@ -323,10 +325,11 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.setWindowTitle("3D Nifti Visualizer")
         self.frame.setLayout(self.grid)
         self.setCentralWidget(self.frame)
-        self.show()
         self.interactor.Initialize()
+        self.show()
 
-    def create_new_seperator(self):
+    @staticmethod
+    def create_new_separator():
         horizontal_line = QtWidgets.QWidget()
         horizontal_line.setFixedHeight(1)
         horizontal_line.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
@@ -351,56 +354,55 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
 
     def add_brain_opacity_picker(self):
         brain_opacity_sp = QtWidgets.QDoubleSpinBox()
-        brain_opacity_sp.setSingleStep(0.1)
-        brain_opacity_sp.setValue(BRAIN_OPACITY)
         brain_opacity_sp.setMaximum(1.0)
         brain_opacity_sp.setMinimum(0.0)
+        brain_opacity_sp.setSingleStep(0.1)
+        brain_opacity_sp.setValue(BRAIN_OPACITY)
         brain_opacity_sp.valueChanged.connect(self.brain_opacity_value_changed)
         return brain_opacity_sp
 
     def add_brain_threshold_picker(self):
         brain_threshold_sp = QtWidgets.QSpinBox()
-        brain_threshold_sp.setValue(BRAIN_THRESHOLD)
-        brain_threshold_sp.setMinimum(100)
         brain_threshold_sp.setMaximum(1000)
-        brain_threshold_sp.setSingleStep(50)
+        brain_threshold_sp.setMinimum(100)
+        brain_threshold_sp.setSingleStep(100)
+        brain_threshold_sp.setValue(BRAIN_THRESHOLD)
         brain_threshold_sp.valueChanged.connect(self.brain_threshold_value_changed)
         return brain_threshold_sp
 
     def add_brain_smoothness_picker(self):
         brain_smoothness_sp = QtWidgets.QSpinBox()
-        brain_smoothness_sp.setValue(BRAIN_SMOOTHNESS)
-        brain_smoothness_sp.setMinimum(100)
         brain_smoothness_sp.setMaximum(1000)
+        brain_smoothness_sp.setMinimum(100)
         brain_smoothness_sp.setSingleStep(100)
+        brain_smoothness_sp.setValue(BRAIN_SMOOTHNESS)
         brain_smoothness_sp.valueChanged.connect(self.brain_smoothness_value_changed)
         return brain_smoothness_sp
 
     def add_tumor_opacity_picker(self):
         tumor_opacity_sp = QtWidgets.QDoubleSpinBox()
-        tumor_opacity_sp.setSingleStep(0.1)
-        tumor_opacity_sp.setValue(TUMOR_OPACITY)
         tumor_opacity_sp.setMaximum(1.0)
         tumor_opacity_sp.setMinimum(0.0)
+        tumor_opacity_sp.setSingleStep(0.1)
+        tumor_opacity_sp.setValue(TUMOR_OPACITY)
         tumor_opacity_sp.valueChanged.connect(self.tumor_opacity_value_changed)
         return tumor_opacity_sp
 
     def add_tumor_threshold_picker(self):
         tumor_threshold_sp = QtWidgets.QSpinBox()
-        tumor_threshold_sp.setValue(TUMOR_THRESHOLD)
-        tumor_threshold_sp.setMinimum(0)
         tumor_threshold_sp.setMaximum(6)
+        tumor_threshold_sp.setMinimum(0)
         tumor_threshold_sp.setSingleStep(1)
-        tumor_threshold_sp.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        tumor_threshold_sp.setValue(TUMOR_THRESHOLD)
         tumor_threshold_sp.valueChanged.connect(self.tumor_threshold_value_changed)
         return tumor_threshold_sp
 
     def add_tumor_smoothness_picker(self):
         tumor_smoothness_sp = QtWidgets.QSpinBox()
-        tumor_smoothness_sp.setValue(TUMOR_SMOOTHNESS)
-        tumor_smoothness_sp.setMinimum(100)
         tumor_smoothness_sp.setMaximum(1000)
+        tumor_smoothness_sp.setMinimum(100)
         tumor_smoothness_sp.setSingleStep(100)
+        tumor_smoothness_sp.setValue(TUMOR_SMOOTHNESS)
         tumor_smoothness_sp.valueChanged.connect(self.tumor_smoothness_value_changed)
         return tumor_smoothness_sp
 
@@ -412,6 +414,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
     def brain_projection_value_changed(self):
         checked = self.brain_projection_cb.isChecked()
         self.brain_image_prop.SetOpacity(checked)
+        self.brain_projection_cb.repaint()
         self.render_window.Render()
 
     def brain_opacity_value_changed(self):
@@ -420,6 +423,9 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.render_window.Render()
 
     def brain_threshold_value_changed(self):
+        for _ in range(10):
+            app.processEvents()
+            time.sleep(0.1)
         threshold = self.brain_threshold_sp.value()
         self.brain.threshold.SetValue(0, threshold)
         self.render_window.Render()
