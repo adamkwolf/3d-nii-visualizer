@@ -4,7 +4,6 @@ import PyQt5.QtCore as Qt
 import PyQt5.QtGui as QtGui
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 import sys
-import threading
 import time
 
 # settings
@@ -18,8 +17,8 @@ BRAIN_OPACITY = 0.1
 TUMOR_OPACITY = 1.0
 BRAIN_FILE = "./data/original/HGG/Brats17_2013_2_1/Brats17_2013_2_1_t1ce.nii.gz"
 TUMOR_FILE = "./data/original/HGG/Brats17_2013_2_1/Brats17_2013_2_1_seg.nii.gz"
-BG_CSS = "background-color: #f4f4f4;"
-GROUPBOX_CSS = "QGroupBox::title { margin: 2px; background-color: rgba(0,0,0,0.0) }; margin-top: 3px;"
+# BG_CSS = "background-color: #f4f4f4;"
+# GROUPBOX_CSS = "QGroupBox::title { margin: 2px; background-color: rgba(0,0,0,0.0) }; margin-top: 3px;"
 
 
 class NiiSettings:
@@ -214,19 +213,19 @@ def add_mri_object(nii_renderer, nii_window, nii_obj):
 
 def create_label(label):
     label = QtWidgets.QLabel(label)
-    label.setStyleSheet("background-color: rgba(0,0,0,0.0)")
+    # label.setStyleSheet("background-color: rgba(0,0,0,0.0)")
     return label
 
 
 def create_checkbox(label):
     checkbox = QtWidgets.QCheckBox(label)
-    checkbox.setStyleSheet("background-color: rgba(0,0,0,0.0); padding-top: 3px")
+    # checkbox.setStyleSheet("background-color: rgba(0,0,0,0.0); padding-top: 3px")
     return checkbox
 
 
 def create_radio_btn(label):
     radio = QtWidgets.QRadioButton(label)
-    radio.setStyleSheet("background-color: rgba(0,0,0,0.0)")
+    # radio.setStyleSheet("background-color: rgba(0,0,0,0.0)")
     return radio
 
 
@@ -281,14 +280,14 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         import os
         object_group_box = QtWidgets.QGroupBox(
             "Brain: " + os.path.basename(BRAIN_FILE) + "          Tumor: " + os.path.basename(TUMOR_FILE))
-        object_group_box.setStyleSheet(GROUPBOX_CSS)
+        # object_group_box.setStyleSheet(GROUPBOX_CSS)
         object_layout = QtWidgets.QVBoxLayout()
         object_layout.addWidget(self.vtk_widget)
         object_group_box.setLayout(object_layout)
         self.grid.addWidget(object_group_box, 0, 2, 5, 5)
 
         brain_group_box = QtWidgets.QGroupBox("Brain Settings")
-        brain_group_box.setStyleSheet(GROUPBOX_CSS)
+        # brain_group_box.setStyleSheet(GROUPBOX_CSS)
         brain_group_layout = QtWidgets.QGridLayout()
 
         brain_group_layout.addWidget(create_label("Brain Threshold"), 0, 0)
@@ -303,7 +302,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.grid.addWidget(brain_group_box, 0, 0, 1, 2)
 
         tumor_color_group_box = QtWidgets.QGroupBox("Tumor Settings")
-        tumor_color_group_box.setStyleSheet(GROUPBOX_CSS)
+        # tumor_color_group_box.setStyleSheet(GROUPBOX_CSS)
         tumor_color_group_layout = QtWidgets.QGridLayout()
         tumor_color_group_layout.addWidget(create_label("Tumor Opacity"), 0, 0)
         tumor_color_group_layout.addWidget(create_label("Tumor Smoothness"), 1, 0)
@@ -325,22 +324,22 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.setWindowTitle("3D Nifti Visualizer")
         self.frame.setLayout(self.grid)
         self.setCentralWidget(self.frame)
-        self.interactor.Initialize()
         self.show()
+        self.interactor.Initialize()
 
     @staticmethod
     def create_new_separator():
         horizontal_line = QtWidgets.QWidget()
         horizontal_line.setFixedHeight(1)
         horizontal_line.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        horizontal_line.setStyleSheet("background-color: #c8c8c8;")
+        # horizontal_line.setStyleSheet("background-color: #c8c8c8;")
         return horizontal_line
 
     @staticmethod
     def setup():
         renderer = vtk.vtkRenderer()
         frame = QtWidgets.QFrame()
-        frame.setStyleSheet(BG_CSS + "color: #444;")
+        # frame.setStyleSheet(BG_CSS + "color: #444;")
         vtk_widget = QVTKRenderWindowInteractor()
         interactor = vtk_widget.GetRenderWindow().GetInteractor()
         render_window = vtk_widget.GetRenderWindow()
