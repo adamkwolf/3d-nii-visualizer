@@ -7,7 +7,7 @@ import PyQt5.QtWidgets as QtWidgets
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
 # default brain settings
-APPLICATION_TITLE = "NIfTI (nii.gz) 3D Visualizer"
+APPLICATION_TITLE = "Theia – NIfTI (nii.gz) 3D Visualizer"
 BRAIN_THRESHOLD = [20]
 BRAIN_SMOOTHNESS = 500
 BRAIN_OPACITY = 0.2
@@ -209,7 +209,6 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         picker.setValue(picker_value)
         picker.valueChanged.connect(value_changed_func)
         return picker
-
 
     def add_brain_projection(self):
         projection_cb = QtWidgets.QCheckBox("")
