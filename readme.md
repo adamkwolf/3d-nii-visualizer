@@ -1,4 +1,4 @@
-# A NIfTI (nii.gz) 3d visualizer using VTK and Qt5
+# A NIfTI (nii.gz) 3D Visualizer using VTK and Qt5
 
 <img src="https://github.com/adamkwolf/3d-nii-visualizer/blob/master/images/visualization.png" style="width: 100px;"/>
 
