@@ -348,16 +348,22 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         tumor_color_group_box.setLayout(tumor_color_group_layout)
         self.grid.addWidget(tumor_color_group_box, 1, 0, 2, 2)
 
-        def reset_view():
-            self.set_view()
-            self.render_window.Render()
-
-        reset_view_btn = QtWidgets.QPushButton("Reset View")
-        reset_view_btn.clicked.connect(reset_view)
-        self.grid.addWidget(reset_view_btn, 3, 0, 1, 2)
+        axial_view = QtWidgets.QPushButton("Axial")
+        coronal_view = QtWidgets.QPushButton("Coronal")
+        sagittal_view = QtWidgets.QPushButton("Sagittal")
+        views_box = QtWidgets.QGroupBox("Views")
+        views_box_layout = QtWidgets.QVBoxLayout()
+        views_box_layout.addWidget(axial_view)
+        views_box_layout.addWidget(coronal_view)
+        views_box_layout.addWidget(sagittal_view)
+        views_box.setLayout(views_box_layout)
+        self.grid.addWidget(views_box, 3, 0, 2, 2)
+        axial_view.clicked.connect(self.set_axial_view)
+        coronal_view.clicked.connect(self.set_coronal_view)
+        sagittal_view.clicked.connect(self.set_sagittal_view)
 
         # set view
-        self.set_view()
+        self.set_axial_view()
 
         #  set layout and show
         self.setWindowTitle("NIfTI (nii.gz) 3D Visualizer")
@@ -366,13 +372,32 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.show()
         self.interactor.Initialize()
 
-    def set_view(self):
+    def set_axial_view(self):
+        self.renderer.ResetCamera()
         fp = self.renderer.GetActiveCamera().GetFocalPoint()
         p = self.renderer.GetActiveCamera().GetPosition()
         dist = math.sqrt((p[0] - fp[0]) ** 2 + (p[1] - fp[1]) ** 2 + (p[2] - fp[2]) ** 2)
         self.renderer.GetActiveCamera().SetPosition(fp[0], fp[1], fp[2] + dist)
-        self.renderer.GetActiveCamera().SetViewUp(0.0, 1.0, 0.0)
-        self.renderer.GetActiveCamera().Zoom(1.0)
+        # self.renderer.GetActiveCamera().SetViewUp(0.0, 1.0, 0.0)
+        self.render_window.Render()
+
+    def set_coronal_view(self):
+        self.renderer.ResetCamera()
+        fp = self.renderer.GetActiveCamera().GetFocalPoint()
+        p = self.renderer.GetActiveCamera().GetPosition()
+        dist = math.sqrt((p[0] - fp[0]) ** 2 + (p[1] - fp[1]) ** 2 + (p[2] - fp[2]) ** 2)
+        self.renderer.GetActiveCamera().SetPosition(fp[0], fp[2] + dist, fp[1])
+        self.renderer.GetActiveCamera().SetViewUp(0.0, 0.5, 0.5)
+        self.render_window.Render()
+
+    def set_sagittal_view(self):
+        self.renderer.ResetCamera()
+        fp = self.renderer.GetActiveCamera().GetFocalPoint()
+        p = self.renderer.GetActiveCamera().GetPosition()
+        dist = math.sqrt((p[0] - fp[0]) ** 2 + (p[1] - fp[1]) ** 2 + (p[2] - fp[2]) ** 2)
+        self.renderer.GetActiveCamera().SetPosition(fp[2] + dist, fp[1], fp[0])
+        self.renderer.GetActiveCamera().SetViewUp(0.0, 0.5, 0.5)
+        self.render_window.Render()
 
     @staticmethod
     def create_new_separator():
