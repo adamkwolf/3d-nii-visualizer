@@ -20,6 +20,7 @@ TUMOR_LABELS = [1, 2, 3, 4]
 TUMOR_OPACITY = 1.0
 
 # files to load into view
+os.chdir("/Users/adamwolf/Desktop/brain-tumor-3d")
 BRAIN_FILE = "./data/original/HGG/Brats17_2013_2_1/Brats17_2013_2_1_t1ce.nii.gz"
 TUMOR_FILE = "./data/original/HGG/Brats17_2013_2_1/Brats17_2013_2_1_seg.nii.gz"
 
@@ -316,6 +317,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
 
 
 def read_volume(file_name):
+    print(os.listdir("."))
     reader = vtk.vtkNIFTIImageReader()
     reader.SetFileNameSliceOffset(1)
     reader.SetDataByteOrderToBigEndian()
@@ -499,7 +501,7 @@ def redirect_vtk_messages():
 
 if __name__ == "__main__":
     error_observer = ErrorObserver()
-    # redirect_vtk_messages()
+    redirect_vtk_messages()
     app = QtWidgets.QApplication(sys.argv)
     window = MainWindow()
     sys.exit(app.exec_())
