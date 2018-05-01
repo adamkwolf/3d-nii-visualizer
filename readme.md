@@ -10,9 +10,12 @@
 4.  Use `./sample_data` or add your datasets in the root directory and modify `BRAIN_FILE` and `TUMOR_FILE` path in `brain_tumor_3d.py`
 5.  Start the program `python brain_tumor_3d.py`
 
+### PyInstaller
+* Mac: `sudo pyinstaller brain_tumor_3d.py  --onefile --windowed --osx-bundle-identifier=Theia --icon=icon.icns --name="Theia" -y --clean`
+* Windows: `coming soon`
 ### Test
 
-* python -m pytest
+* `python -m pytest`
 
 ### Acknowledgements
 
