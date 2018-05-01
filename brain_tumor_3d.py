@@ -8,14 +8,14 @@ from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
 # default brain settings
 APPLICATION_TITLE = "Theia – NIfTI (nii.gz) 3D Visualizer"
-BRAIN_THRESHOLD = [20]
+BRAIN_THRESHOLD = 20
 BRAIN_SMOOTHNESS = 500
 BRAIN_OPACITY = 0.2
-BRAIN_COLOR = (1.0, 0.9, 0.9)  # RGB percentages
+BRAIN_COLORS = [(1.0, 0.9, 0.9)]  # RGB percentages
 
 # default tumor settings
 TUMOR_SMOOTHNESS = 500
-TUMOR_COLOR = (0.8, 0, 0)  # RGB percentages
+TUMOR_COLORS = [(1, 0, 0), (0, 1, 0), (0.5, 0.5, 0), (0, 0, 1)]  # RGB percentages
 TUMOR_LABELS = [1, 2, 3, 4]
 TUMOR_OPACITY = 1.0
 
@@ -24,26 +24,21 @@ BRAIN_FILE = "./data/original/HGG/Brats17_2013_2_1/Brats17_2013_2_1_t1ce.nii.gz"
 TUMOR_FILE = "./data/original/HGG/Brats17_2013_2_1/Brats17_2013_2_1_seg.nii.gz"
 
 
-class NiiSettings:
-    def __init__(self, file, color, opacity, labels, smoothness):
-        self.file = file
-        self.color = color
-        self.opacity = opacity
-        self.labels = labels
-        self.missing_labels = set()
-        self.smoothness = smoothness
-
-
 class NiiObject:
     def __init__(self):
-        self.actor = None
-        self.image_actor = None
+        self.file = None
         self.reader = None
+        self.labels = []
+
+
+class NiiLabel:
+    def __init__(self, color, opacity, smoothness):
+        self.actor = None
         self.property = None
-        self.extractor = None
         self.smoother = None
-        self.locator = None
-        self.settings = None
+        self.color = color
+        self.opacity = opacity
+        self.smoothness = smoothness
 
 
 class ErrorObserver:
@@ -77,10 +72,10 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.brain_image_prop = setup_projection(self.brain, self.renderer)
 
         # detect any missing labels for the tumor
-        detect_missing_labels(self.tumor, self.render_window)
+        # detect_missing_labels(self.tumor, self.render_window)
 
         # brain pickers
-        self.brain_threshold_sp = self.create_new_picker(1000, 0, 5, BRAIN_THRESHOLD[0], self.brain_threshold_vc)
+        self.brain_threshold_sp = self.create_new_picker(1000, 0, 5, BRAIN_THRESHOLD, self.brain_threshold_vc)
         self.brain_opacity_sp = self.create_new_picker(1.0, 0.0, 0.1, BRAIN_OPACITY, self.brain_opacity_vc)
         self.brain_smoothness_sp = self.create_new_picker(1000, 100, 100, BRAIN_SMOOTHNESS, self.brain_smoothness_vc)
         self.brain_projection_cb = self.add_brain_projection()
@@ -88,6 +83,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         # tumor pickers
         self.tumor_opacity_sp = self.create_new_picker(1.0, 0.0, 0.1, TUMOR_OPACITY, self.tumor_opacity_vc)
         self.tumor_smoothness_sp = self.create_new_picker(1000, 100, 100, TUMOR_SMOOTHNESS, self.tumor_smoothness_vc)
+        self.tumor_label_cbs = []
 
         # create grid for all widgets
         self.grid = QtWidgets.QGridLayout()
@@ -99,6 +95,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.add_views_widget()
 
         #  set layout and show
+        self.render_window.Render()
         self.setWindowTitle(APPLICATION_TITLE)
         self.frame.setLayout(self.grid)
         self.setCentralWidget(self.frame)
@@ -149,37 +146,37 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.grid.addWidget(brain_group_box, 0, 0, 1, 2)
 
     def add_tumor_settings_widget(self):
-        tumor_color_group_box = QtWidgets.QGroupBox("Tumor Settings")
-        tumor_color_group_layout = QtWidgets.QGridLayout()
-        tumor_color_group_layout.addWidget(QtWidgets.QLabel("Tumor Opacity"), 0, 0)
-        tumor_color_group_layout.addWidget(QtWidgets.QLabel("Tumor Smoothness"), 1, 0)
-        tumor_color_group_layout.addWidget(self.tumor_opacity_sp, 0, 1)
-        tumor_color_group_layout.addWidget(self.tumor_smoothness_sp, 1, 1)
-        self.tumor_single_color_radio = QtWidgets.QRadioButton("Single Color")
-        self.tumor_single_color_radio.setChecked(True)
-        self.tumor_multi_color_radio = QtWidgets.QRadioButton("Multi Color")
-        tumor_color_group_layout.addWidget(self.tumor_single_color_radio, 2, 0)
-        tumor_color_group_layout.addWidget(self.tumor_multi_color_radio, 2, 1)
-        tumor_color_group_layout.addWidget(self.create_new_separator(), 3, 0, 1, 2)
+        tumor_settings_group_box = QtWidgets.QGroupBox("Tumor Settings")
+        tumor_settings_layout = QtWidgets.QGridLayout()
+        tumor_settings_layout.addWidget(QtWidgets.QLabel("Tumor Opacity"), 0, 0)
+        tumor_settings_layout.addWidget(QtWidgets.QLabel("Tumor Smoothness"), 1, 0)
+        tumor_settings_layout.addWidget(self.tumor_opacity_sp, 0, 1)
+        tumor_settings_layout.addWidget(self.tumor_smoothness_sp, 1, 1)
+        tumor_multi_color_radio = QtWidgets.QRadioButton("Multi Color")
+        tumor_multi_color_radio.setChecked(True)
+        tumor_multi_color_radio.clicked.connect(self.tumor_multi_color_radio_checked)
+        tumor_single_color_radio = QtWidgets.QRadioButton("Single Color")
+        tumor_single_color_radio.clicked.connect(self.tumor_single_color_radio_checked)
+        tumor_settings_layout.addWidget(tumor_multi_color_radio, 2, 0)
+        tumor_settings_layout.addWidget(tumor_single_color_radio, 2, 1)
+        tumor_settings_layout.addWidget(self.create_new_separator(), 3, 0, 1, 2)
         self.tumor_label_cbs = [QtWidgets.QCheckBox("Label 1"),
                                 QtWidgets.QCheckBox("Label 2"),
                                 QtWidgets.QCheckBox("Label 3"),
                                 QtWidgets.QCheckBox("Label 4")]
-        tumor_color_group_layout.addWidget(self.tumor_label_cbs[0], 4, 0)
-        tumor_color_group_layout.addWidget(self.tumor_label_cbs[1], 4, 1)
-        tumor_color_group_layout.addWidget(self.tumor_label_cbs[2], 5, 0)
-        tumor_color_group_layout.addWidget(self.tumor_label_cbs[3], 5, 1)
-        tumor_color_group_box.setLayout(tumor_color_group_layout)
-        self.grid.addWidget(tumor_color_group_box, 1, 0, 2, 2)
-        extractor_idx = 0
+        tumor_settings_layout.addWidget(self.tumor_label_cbs[0], 4, 0)
+        tumor_settings_layout.addWidget(self.tumor_label_cbs[1], 4, 1)
+        tumor_settings_layout.addWidget(self.tumor_label_cbs[2], 5, 0)
+        tumor_settings_layout.addWidget(self.tumor_label_cbs[3], 5, 1)
+        tumor_settings_group_box.setLayout(tumor_settings_layout)
+        self.grid.addWidget(tumor_settings_group_box, 1, 0, 2, 2)
+
         for i, cb in enumerate(self.tumor_label_cbs):
-            if i + 1 in self.tumor.settings.missing_labels:
-                cb.setDisabled(True)
-            else:
-                cb.setChecked(True)  # all labels on by default
-                self.tumor.extractor.SetValue(extractor_idx, i + 1)
+            if self.tumor.labels[i].actor:
+                cb.setChecked(True)
                 cb.clicked.connect(self.tumor_label_checked)
-                extractor_idx += 1
+            else:
+                cb.setDisabled(True)
 
     def add_views_widget(self):
         axial_view = QtWidgets.QPushButton("Axial")
@@ -216,17 +213,23 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         return projection_cb
 
     def tumor_label_checked(self):
-        """
-        Step 1: Set number of contours to 0. This will remove all current contours.
-        Step 2: For each checked checkbox, set its contour on the extractor.
-        Step 3: Render the updated contour values.
-        """
-        self.tumor.extractor.SetNumberOfContours(0)
-        contour_idx = 0  # must be sequential starting from 0
         for i, cb in enumerate(self.tumor_label_cbs):
             if cb.isChecked():
-                self.tumor.extractor.SetValue(contour_idx, i + 1)
-                contour_idx += 1
+                self.tumor.labels[i].property.SetOpacity(self.tumor_opacity_sp.value())
+            elif cb.isEnabled():  # labels without data are disabled
+                self.tumor.labels[i].property.SetOpacity(0)
+        self.render_window.Render()
+
+    def tumor_single_color_radio_checked(self):
+        for label in self.tumor.labels:
+            if label.property:
+                label.property.SetColor(TUMOR_COLORS[0])
+        self.render_window.Render()
+
+    def tumor_multi_color_radio_checked(self):
+        for label in self.tumor.labels:
+            if label.property:
+                label.property.SetColor(label.color)
         self.render_window.Render()
 
     def brain_projection_vc(self):
@@ -237,30 +240,34 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
 
     def brain_opacity_vc(self):
         opacity = round(self.brain_opacity_sp.value(), 2)
-        self.brain.property.SetOpacity(opacity)
+        self.brain.labels[0].property.SetOpacity(opacity)
         self.render_window.Render()
 
     def brain_threshold_vc(self):
         self.process_changes()
         threshold = self.brain_threshold_sp.value()
-        self.brain.extractor.SetValue(0, threshold)
+        self.brain.labels[0].extractor.SetValue(0, threshold)
         self.render_window.Render()
 
     def brain_smoothness_vc(self):
         self.process_changes()
         smoothness = self.brain_smoothness_sp.value()
-        self.brain.smoother.SetNumberOfIterations(smoothness)
+        self.brain.labels[0].smoother.SetNumberOfIterations(smoothness)
         self.render_window.Render()
 
     def tumor_opacity_vc(self):
         opacity = round(self.tumor_opacity_sp.value(), 2)
-        self.tumor.property.SetOpacity(opacity)
+        for label in self.tumor.labels:
+            if label.property:
+                label.property.SetOpacity(opacity)
         self.render_window.Render()
 
     def tumor_smoothness_vc(self):
         self.process_changes()
         smoothness = self.tumor_smoothness_sp.value()
-        self.tumor.smoother.SetNumberOfIterations(smoothness)
+        for label in self.tumor.labels:
+            if label.smoother:
+                label.smoother.SetNumberOfIterations(smoothness)
         self.render_window.Render()
 
     def set_axial_view(self):
@@ -270,7 +277,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         dist = math.sqrt((p[0] - fp[0]) ** 2 + (p[1] - fp[1]) ** 2 + (p[2] - fp[2]) ** 2)
         self.renderer.GetActiveCamera().SetPosition(fp[0], fp[1], fp[2] + dist)
         self.renderer.GetActiveCamera().SetViewUp(0.0, 1.0, 0.0)
-        self.renderer.GetActiveCamera().Zoom(1.6)
+        self.renderer.GetActiveCamera().Zoom(1.8)
         self.render_window.Render()
 
     def set_coronal_view(self):
@@ -280,7 +287,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         dist = math.sqrt((p[0] - fp[0]) ** 2 + (p[1] - fp[1]) ** 2 + (p[2] - fp[2]) ** 2)
         self.renderer.GetActiveCamera().SetPosition(fp[0], fp[2] + dist, fp[1])
         self.renderer.GetActiveCamera().SetViewUp(0.0, 0.5, 0.5)
-        self.renderer.GetActiveCamera().Zoom(1.6)
+        self.renderer.GetActiveCamera().Zoom(1.8)
         self.render_window.Render()
 
     def set_sagittal_view(self):
@@ -290,7 +297,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         dist = math.sqrt((p[0] - fp[0]) ** 2 + (p[1] - fp[1]) ** 2 + (p[2] - fp[2]) ** 2)
         self.renderer.GetActiveCamera().SetPosition(fp[2] + dist, fp[1], fp[0])
         self.renderer.GetActiveCamera().SetViewUp(0.0, 0.5, 0.5)
-        self.renderer.GetActiveCamera().Zoom(1.6)
+        self.renderer.GetActiveCamera().Zoom(1.8)
         self.render_window.Render()
 
     @staticmethod
@@ -313,31 +320,27 @@ def read_volume(file_name):
     reader.SetFileNameSliceOffset(1)
     reader.SetDataByteOrderToBigEndian()
     reader.SetFileName(file_name)
+    reader.Update()
     return reader
 
 
 def create_brain_extractor(brain):
     brain_extractor = vtk.vtkFlyingEdges3D()
     brain_extractor.SetInputConnection(brain.reader.GetOutputPort())
-    brain_extractor.SetValue(0, brain.settings.labels[0])
+    brain_extractor.SetValue(0, BRAIN_THRESHOLD)
     return brain_extractor
 
 
 def create_tumor_extractor(tumor):
     tumor_extractor = vtk.vtkDiscreteMarchingCubes()
     tumor_extractor.SetInputConnection(tumor.reader.GetOutputPort())
-
-    for i, label in enumerate(tumor.settings.labels):
-        if label not in tumor.settings.missing_labels:
-            tumor_extractor.SetValue(i, label)
-
     return tumor_extractor
 
 
-def create_polygon_reducer(obj):
+def create_polygon_reducer(extractor):
     reducer = vtk.vtkDecimatePro()
     reducer.AddObserver('ErrorEvent', error_observer)  # used to detect labels that don't exist
-    reducer.SetInputConnection(obj.extractor.GetOutputPort())
+    reducer.SetInputConnection(extractor.GetOutputPort())
     reducer.SetTargetReduction(0.5)
     reducer.PreserveTopologyOn()
 
@@ -364,25 +367,17 @@ def create_stripper(normals):
     return brain_stripper
 
 
-def create_locator(extractor):
-    brain_locator = vtk.vtkCellLocator()
-    brain_locator.SetDataSet(extractor.GetOutput())
-    brain_locator.LazyEvaluationOn()
-    return brain_locator
-
-
 def create_mapper(stripper):
     brain_mapper = vtk.vtkPolyDataMapper()
     brain_mapper.SetInputConnection(stripper.GetOutputPort())
     brain_mapper.ScalarVisibilityOff()
-    # brain_mapper.SetLookupTable(create_tumor_table())
     brain_mapper.Update()
     return brain_mapper
 
 
 def create_property(opacity, color):
     prop = vtk.vtkProperty()
-    prop.SetColor(color[0], color[1], color[2])  # changes the render color (1.0, 0.9, 0.9)
+    prop.SetColor(color[0], color[1], color[2])
     prop.SetOpacity(opacity)
     return prop
 
@@ -428,19 +423,22 @@ def create_table():
     table.SetSaturationRange(0, 0)
 
 
-def add_surface_rendering(nii_obj):
-    reducer = create_polygon_reducer(nii_obj)
-    smoother = create_smoother(reducer, nii_obj.settings.smoothness)
-    normals = create_normals(smoother)
-    stripper = create_stripper(normals)
-    actor_locator = create_locator(nii_obj.extractor)
-    actor_mapper = create_mapper(stripper)
-    actor_property = create_property(nii_obj.settings.opacity, nii_obj.settings.color)
-    actor = create_actor(actor_mapper, actor_property)
-    nii_obj.actor = actor
-    nii_obj.smoother = smoother
-    nii_obj.locator = actor_locator
-    nii_obj.property = actor_property
+def add_surface_rendering(nii_object, label_idx, label_value):
+    nii_object.labels[label_idx].extractor.SetValue(0, label_value)
+    nii_object.labels[label_idx].extractor.Update()
+
+    # if the cell size is 0 then there is no label_idx data
+    if nii_object.labels[label_idx].extractor.GetOutput().GetMaxCellSize():
+        reducer = create_polygon_reducer(nii_object.labels[label_idx].extractor)
+        smoother = create_smoother(reducer, nii_object.labels[label_idx].smoothness)
+        normals = create_normals(smoother)
+        stripper = create_stripper(normals)
+        actor_mapper = create_mapper(stripper)
+        actor_property = create_property(nii_object.labels[label_idx].opacity, nii_object.labels[label_idx].color)
+        actor = create_actor(actor_mapper, actor_property)
+        nii_object.labels[label_idx].actor = actor
+        nii_object.labels[label_idx].smoother = smoother
+        nii_object.labels[label_idx].property = actor_property
 
 
 def setup_projection(brain, renderer):
@@ -465,31 +463,27 @@ def setup_projection(brain, renderer):
 
 def setup_brain(renderer):
     brain = NiiObject()
-    brain.settings = NiiSettings(BRAIN_FILE, BRAIN_COLOR, BRAIN_OPACITY, BRAIN_THRESHOLD, BRAIN_SMOOTHNESS)
-    brain.reader = read_volume(brain.settings.file)
-    brain.extractor = create_brain_extractor(brain)
-    add_surface_rendering(brain)
-    renderer.AddViewProp(brain.actor)
+    brain.file = BRAIN_FILE
+    brain.reader = read_volume(brain.file)
+    brain.labels.append(NiiLabel(BRAIN_COLORS[0], BRAIN_OPACITY, BRAIN_SMOOTHNESS))
+    brain.labels[0].extractor = create_brain_extractor(brain)
+    add_surface_rendering(brain, 0, 20)
+    renderer.AddActor(brain.labels[0].actor)
     return brain
 
 
 def setup_tumor(renderer):
     tumor = NiiObject()
-    tumor.settings = NiiSettings(TUMOR_FILE, TUMOR_COLOR, TUMOR_OPACITY, TUMOR_LABELS, TUMOR_SMOOTHNESS)
-    tumor.reader = read_volume(tumor.settings.file)
-    tumor.extractor = create_tumor_extractor(tumor)
-    add_surface_rendering(tumor)
-    renderer.AddViewProp(tumor.actor)
+    tumor.file = TUMOR_FILE
+    tumor.reader = read_volume(tumor.file)
+    n_labels = int(tumor.reader.GetOutput().GetScalarRange()[1])
+    for label_idx in range(0, n_labels):
+        tumor.labels.append(NiiLabel(TUMOR_COLORS[label_idx], TUMOR_OPACITY, TUMOR_SMOOTHNESS))
+        tumor.labels[label_idx].extractor = create_tumor_extractor(tumor)
+        add_surface_rendering(tumor, label_idx, label_idx + 1)
+        renderer.AddActor(tumor.labels[label_idx].actor)
+
     return tumor
-
-
-def detect_missing_labels(tumor, render_window):
-    for label in tumor.settings.labels:
-        tumor.extractor.SetValue(0, label)
-        render_window.Render()
-        if error_observer.ErrorOccurred():
-            tumor.settings.missing_labels.add(label)
-        tumor.extractor.SetNumberOfContours(0)
 
 
 def redirect_vtk_messages():
@@ -505,7 +499,7 @@ def redirect_vtk_messages():
 
 if __name__ == "__main__":
     error_observer = ErrorObserver()
-    redirect_vtk_messages()
+    # redirect_vtk_messages()
     app = QtWidgets.QApplication(sys.argv)
     window = MainWindow()
     sys.exit(app.exec_())
