@@ -48,15 +48,7 @@ def main():
 
     sagittal = vtk.vtkImageActor()
     sagittal.GetMapper().SetInputConnection(view_colors.GetOutputPort())
-    sagittal.SetDisplayExtent(128, 128, 0, 255, 0, 255)
 
-    axial = vtk.vtkImageActor()
-    axial.GetMapper().SetInputConnection(view_colors.GetOutputPort())
-    axial.SetDisplayExtent(0, 255, 0, 255, 75, 255)
-
-    coronal = vtk.vtkImageActor()
-    coronal.GetMapper().SetInputConnection(view_colors.GetOutputPort())
-    coronal.SetDisplayExtent(0, 255, 128, 128, 0, 255)
 
     camera = vtk.vtkCamera()
     camera.SetViewUp(0, 0, -1)
