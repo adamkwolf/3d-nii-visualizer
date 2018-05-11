@@ -1,8 +1,9 @@
 import vtk
-from NiiObject import *
-from NiiLabel import *
-from config import *
 from ErrorObserver import *
+from NiiObject import *
+from config import *
+
+from visualizer.NiiLabel import *
 
 error_observer = ErrorObserver()
 

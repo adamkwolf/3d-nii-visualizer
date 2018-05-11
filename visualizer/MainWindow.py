@@ -1,9 +1,11 @@
-import time
 import math
+import time
+
 import PyQt5.QtWidgets as QtWidgets
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from vtkUtils import *
-from config import *
+
+from visualizer.config import *
 
 
 class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):

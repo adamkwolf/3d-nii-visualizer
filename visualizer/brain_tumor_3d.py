@@ -1,7 +1,7 @@
-import sys
 import argparse
+import sys
+
 from MainWindow import *
-import config
 
 
 def redirect_vtk_messages():
