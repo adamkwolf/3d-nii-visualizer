@@ -171,6 +171,8 @@ def setup_tumor(renderer, file):
     tumor.file = file
     tumor.reader = read_volume(tumor.file)
     n_labels = int(tumor.reader.GetOutput().GetScalarRange()[1])
+    n_labels = n_labels if n_labels <= 10 else 10
+
     for label_idx in range(0, n_labels):
         tumor.labels.append(NiiLabel(TUMOR_COLORS[label_idx], TUMOR_OPACITY, TUMOR_SMOOTHNESS))
         tumor.labels[label_idx].extractor = create_tumor_extractor(tumor)

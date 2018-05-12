@@ -110,19 +110,20 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         tumor_settings_layout.addWidget(tumor_multi_color_radio, 2, 0)
         tumor_settings_layout.addWidget(tumor_single_color_radio, 2, 1)
         tumor_settings_layout.addWidget(self.create_new_separator(), 3, 0, 1, 2)
-        self.tumor_label_cbs = [QtWidgets.QCheckBox("Label 1"),
-                                QtWidgets.QCheckBox("Label 2"),
-                                QtWidgets.QCheckBox("Label 3"),
-                                QtWidgets.QCheckBox("Label 4")]
-        tumor_settings_layout.addWidget(self.tumor_label_cbs[0], 4, 0)
-        tumor_settings_layout.addWidget(self.tumor_label_cbs[1], 4, 1)
-        tumor_settings_layout.addWidget(self.tumor_label_cbs[2], 5, 0)
-        tumor_settings_layout.addWidget(self.tumor_label_cbs[3], 5, 1)
+
+        self.tumor_label_cbs = []
+        c_col, c_row = 0, 4  # c_row must always be (+1) of last row
+        for i in range(1, 11):
+            self.tumor_label_cbs.append(QtWidgets.QCheckBox("Label {}".format(i)))
+            tumor_settings_layout.addWidget(self.tumor_label_cbs[i-1], c_row, c_col)
+            c_row = c_row + 1 if c_col == 1 else c_row
+            c_col = 0 if c_col == 1 else 1
+
         tumor_settings_group_box.setLayout(tumor_settings_layout)
         self.grid.addWidget(tumor_settings_group_box, 1, 0, 2, 2)
 
         for i, cb in enumerate(self.tumor_label_cbs):
-            if self.tumor.labels[i].actor:
+            if i < len(self.tumor.labels) and self.tumor.labels[i].actor:
                 cb.setChecked(True)
                 cb.clicked.connect(self.tumor_label_checked)
             else:
@@ -235,19 +236,20 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         fp = self.renderer.GetActiveCamera().GetFocalPoint()
         p = self.renderer.GetActiveCamera().GetPosition()
         dist = math.sqrt((p[0] - fp[0]) ** 2 + (p[1] - fp[1]) ** 2 + (p[2] - fp[2]) ** 2)
-        self.renderer.GetActiveCamera().SetPosition(fp[0], fp[2] + dist, fp[1])
+        self.renderer.GetActiveCamera().SetPosition(fp[0], fp[2] - dist, fp[1])
         self.renderer.GetActiveCamera().SetViewUp(0.0, 0.5, 0.5)
         self.renderer.GetActiveCamera().Zoom(1.8)
         self.render_window.Render()
 
     def set_sagittal_view(self):
+        print(self.renderer.GetActiveCamera().GetViewUp())
         self.renderer.ResetCamera()
         fp = self.renderer.GetActiveCamera().GetFocalPoint()
         p = self.renderer.GetActiveCamera().GetPosition()
         dist = math.sqrt((p[0] - fp[0]) ** 2 + (p[1] - fp[1]) ** 2 + (p[2] - fp[2]) ** 2)
-        self.renderer.GetActiveCamera().SetPosition(fp[2] + dist, fp[1], fp[0])
-        self.renderer.GetActiveCamera().SetViewUp(0.0, 0.5, 0.5)
-        self.renderer.GetActiveCamera().Zoom(1.8)
+        self.renderer.GetActiveCamera().SetPosition(fp[2] + dist, fp[0], fp[1])
+        self.renderer.GetActiveCamera().SetViewUp(0.0, 0.0, 1.0)
+        self.renderer.GetActiveCamera().Zoom(1.6)
         self.render_window.Render()
 
     @staticmethod
