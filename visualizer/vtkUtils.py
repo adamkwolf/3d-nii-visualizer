@@ -2,8 +2,7 @@ import vtk
 from ErrorObserver import *
 from NiiObject import *
 from config import *
-
-from visualizer.NiiLabel import *
+from NiiLabel import *
 
 error_observer = ErrorObserver()
 
@@ -135,6 +134,47 @@ def add_surface_rendering(nii_object, label_idx, label_value):
         nii_object.labels[label_idx].property = actor_property
 
 
+def setup_slicer(renderer, reader):
+    bw_lut = vtk.vtkLookupTable()
+    bw_lut.SetTableRange(0, 2000)
+    bw_lut.SetSaturationRange(0, 0)
+    bw_lut.SetHueRange(0, 0)
+    bw_lut.SetValueRange(0, 1)
+    bw_lut.Build()
+
+    view_colors = vtk.vtkImageMapToColors()
+    view_colors.SetInputConnection(reader.GetOutputPort())
+    view_colors.SetLookupTable(bw_lut)
+    view_colors.Update()
+
+    sagittal = vtk.vtkImageActor()
+    sag_prop = vtk.vtkImageProperty()
+    sag_prop.SetOpacity(0)
+    sagittal.SetProperty(sag_prop)
+    sagittal.GetMapper().SetInputConnection(view_colors.GetOutputPort())
+    sagittal.SetDisplayExtent(128, 128, 0, 255, 0, 255)
+
+    axial = vtk.vtkImageActor()
+    axial_prop = vtk.vtkImageProperty()
+    axial_prop.SetOpacity(0)
+    axial.SetProperty(axial_prop)
+    axial.GetMapper().SetInputConnection(view_colors.GetOutputPort())
+    axial.SetDisplayExtent(0, 255, 0, 255, 75, 255)
+
+    coronal = vtk.vtkImageActor()
+    cor_prop = vtk.vtkImageProperty()
+    cor_prop.SetOpacity(0)
+    coronal.SetProperty(cor_prop)
+    coronal.GetMapper().SetInputConnection(view_colors.GetOutputPort())
+    coronal.SetDisplayExtent(0, 255, 128, 128, 0, 255)
+
+    renderer.AddActor(sagittal)
+    renderer.AddActor(axial)
+    renderer.AddActor(coronal)
+
+    return [sagittal, axial, coronal]
+
+
 def setup_projection(brain, renderer):
     slice_mapper = vtk.vtkImageResliceMapper()
     slice_mapper.SetInputConnection(brain.reader.GetOutputPort())
@@ -162,7 +202,7 @@ def setup_brain(renderer, file):
     brain.labels.append(NiiLabel(BRAIN_COLORS[0], BRAIN_OPACITY, BRAIN_SMOOTHNESS))
     brain.labels[0].extractor = create_brain_extractor(brain)
     add_surface_rendering(brain, 0, 20)
-    renderer.AddActor(brain.labels[0].actor)
+    # renderer.AddActor(brain.labels[0].actor)
     return brain
 
 
@@ -173,9 +213,9 @@ def setup_tumor(renderer, file):
     n_labels = int(tumor.reader.GetOutput().GetScalarRange()[1])
     n_labels = n_labels if n_labels <= 10 else 10
 
-    for label_idx in range(0, n_labels):
+    for label_idx in range(n_labels):
         tumor.labels.append(NiiLabel(TUMOR_COLORS[label_idx], TUMOR_OPACITY, TUMOR_SMOOTHNESS))
         tumor.labels[label_idx].extractor = create_tumor_extractor(tumor)
         add_surface_rendering(tumor, label_idx, label_idx + 1)
-        renderer.AddActor(tumor.labels[label_idx].actor)
+        # renderer.AddActor(tumor.labels[label_idx].actor)
     return tumor
