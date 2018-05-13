@@ -89,6 +89,8 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         object_group_box = QtWidgets.QGroupBox(object_title)
         object_layout = QtWidgets.QVBoxLayout()
         object_layout.addWidget(self.vtk_widget)
+        # self.vtk_widget.setFixedSize(650, 650)
+        # self.vtk_widget.setBaseSize(650, 650)
         object_group_box.setLayout(object_layout)
         self.grid.addWidget(object_group_box, 0, 2, 5, 5)
 
@@ -133,7 +135,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         c_col, c_row = 0, 4  # c_row must always be (+1) of last row
         for i in range(1, 11):
             self.tumor_label_cbs.append(QtWidgets.QCheckBox("Label {}".format(i)))
-            tumor_settings_layout.addWidget(self.tumor_label_cbs[i-1], c_row, c_col)
+            tumor_settings_layout.addWidget(self.tumor_label_cbs[i - 1], c_row, c_col)
             c_row = c_row + 1 if c_col == 1 else c_row
             c_col = 0 if c_col == 1 else 1
 
