@@ -2,6 +2,7 @@ import math
 import time
 
 import PyQt5.QtWidgets as QtWidgets
+import PyQt5.QtCore as Qt
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from vtkUtils import *
 from config import *
@@ -17,14 +18,16 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.brain, self.tumor = setup_brain(self.renderer, self.app.BRAIN_FILE), setup_tumor(self.renderer,
                                                                                               self.app.TUMOR_FILE)
 
-        # setup brain projection
+        # setup brain projection and slicer
         self.brain_image_prop = setup_projection(self.brain, self.renderer)
-        self.brain_slicer_props = setup_slicer(self.renderer, self.brain.reader)
-        self.renderer.AddActor(self.brain.labels[0].actor)
+        self.brain_slicer_props = setup_slicer(self.renderer, self.brain.reader)  # breaking something with rotation
+
+        # must add brain and tumor to view last
         n_labels = int(self.tumor.reader.GetOutput().GetScalarRange()[1])
         n_labels = n_labels if n_labels <= 10 else 10
         for label_idx in range(n_labels):
             self.renderer.AddActor(self.tumor.labels[label_idx].actor)
+        self.renderer.AddActor(self.brain.labels[0].actor)
 
         # brain pickers
         self.brain_threshold_sp = self.create_new_picker(1000, 0, 5, BRAIN_THRESHOLD, self.brain_threshold_vc)
@@ -75,7 +78,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         return renderer, frame, vtk_widget, interactor, render_window
 
     def add_brain_slicer(self):
-        slicer_cb = QtWidgets.QCheckBox("")
+        slicer_cb = QtWidgets.QRadioButton("Slicer")
         slicer_cb.clicked.connect(self.brain_slicer_vc)
         return slicer_cb
 
@@ -95,13 +98,18 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         brain_group_layout.addWidget(QtWidgets.QLabel("Brain Threshold"), 0, 0)
         brain_group_layout.addWidget(QtWidgets.QLabel("Brain Opacity"), 1, 0)
         brain_group_layout.addWidget(QtWidgets.QLabel("Brain Smoothness"), 2, 0)
-        brain_group_layout.addWidget(QtWidgets.QLabel("Brain Projection"), 3, 0)
-        brain_group_layout.addWidget(QtWidgets.QLabel("Brain Slicer"), 4, 0)
+        brain_group_layout.addWidget(QtWidgets.QLabel("Axial"), 5, 0)
+        brain_group_layout.addWidget(QtWidgets.QLabel("Coronal"), 6, 0)
+        brain_group_layout.addWidget(QtWidgets.QLabel("Sagittal"), 7, 0)
         brain_group_layout.addWidget(self.brain_threshold_sp, 0, 1)
         brain_group_layout.addWidget(self.brain_opacity_sp, 1, 1)
         brain_group_layout.addWidget(self.brain_smoothness_sp, 2, 1)
-        brain_group_layout.addWidget(self.brain_projection_cb, 3, 1)
-        brain_group_layout.addWidget(self.brain_slicer_cb, 4, 1)
+        brain_group_layout.addWidget(self.brain_projection_cb, 3, 0)
+        brain_group_layout.addWidget(self.brain_slicer_cb, 3, 1)
+        brain_group_layout.addWidget(self.create_new_separator(), 4, 0, 1, 2)
+        brain_group_layout.addWidget(QtWidgets.QSlider(Qt.Qt.Horizontal), 5, 1, 1, 2)
+        brain_group_layout.addWidget(QtWidgets.QSlider(Qt.Qt.Horizontal), 6, 1)
+        brain_group_layout.addWidget(QtWidgets.QSlider(Qt.Qt.Horizontal), 7, 1)
         brain_group_box.setLayout(brain_group_layout)
         self.grid.addWidget(brain_group_box, 0, 0, 1, 2)
 
@@ -169,7 +177,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         return picker
 
     def add_brain_projection(self):
-        projection_cb = QtWidgets.QCheckBox("")
+        projection_cb = QtWidgets.QRadioButton("Projection")
         projection_cb.clicked.connect(self.brain_projection_vc)
         return projection_cb
 
@@ -194,8 +202,13 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.render_window.Render()
 
     def brain_projection_vc(self):
-        checked = self.brain_projection_cb.isChecked()
-        self.brain_image_prop.SetOpacity(checked)
+        proj_checked = self.brain_projection_cb.isChecked()
+        for prop in self.brain_slicer_props:
+            if proj_checked:
+                prop.GetProperty().SetOpacity(0.0)
+                self.brain_image_prop.SetOpacity(1.0)
+            else:
+                prop.GetProperty().SetOpacity(1.0)
         self.render_window.Render()
 
     def brain_slicer_vc(self):
@@ -203,6 +216,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         for prop in self.brain_slicer_props:
             if checked:
                 prop.GetProperty().SetOpacity(1.0)
+                self.brain_image_prop.SetOpacity(0.0)
             else:
                 prop.GetProperty().SetOpacity(0.0)
         self.render_window.Render()
