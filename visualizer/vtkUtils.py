@@ -168,9 +168,9 @@ def setup_slicer(renderer, reader):
     coronal.GetMapper().SetInputConnection(view_colors.GetOutputPort())
     coronal.SetDisplayExtent(0, 255, 128, 128, 0, 255)
 
-    renderer.AddActor(sagittal)
-    renderer.AddActor(axial)
-    renderer.AddActor(coronal)
+    # renderer.AddActor(sagittal)
+    # renderer.AddActor(axial)
+    # renderer.AddActor(coronal)
 
     return [sagittal, axial, coronal]
 
