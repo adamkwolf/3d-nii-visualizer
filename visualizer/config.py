@@ -7,9 +7,9 @@ BRAIN_SMOOTHNESS = 500
 BRAIN_OPACITY = 0.2
 BRAIN_COLORS = [(1.0, 0.9, 0.9)]  # RGB percentages
 
-# default tumor settings
-TUMOR_SMOOTHNESS = 500
-TUMOR_COLORS = [(1, 0, 0),
+# default mask settings
+MASK_SMOOTHNESS = 500
+MASK_COLORS = [(1, 0, 0),
                 (0, 1, 0),
                 (1, 1, 0),
                 (0, 0, 1),
@@ -18,9 +18,9 @@ TUMOR_COLORS = [(1, 0, 0),
                 (1, 0.5, 0.5),
                 (0.5, 1, 0.5),
                 (0.5, 0.5, 1)]  # RGB percentages
-TUMOR_OPACITY = 1.0
+MASK_OPACITY = 1.0
 
 # files to load into view
-# os.chdir("/Users/adamwolf/Desktop/brain-tumor-3d")
+# os.chdir("/Users/adamwolf/Desktop/brain-mask-3d")
 # BRAIN_FILE = "./data/original/HGG/Brats17_2013_12_1/Brats17_2013_12_1_t1ce.nii.gz"
-# TUMOR_FILE = "./data/original/HGG/Brats17_2013_12_1/Brats17_2013_12_1_seg.nii.gz"
+# MASK_FILE = "./data/original/HGG/Brats17_2013_12_1/Brats17_2013_12_1_seg.nii.gz"

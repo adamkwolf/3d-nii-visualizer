@@ -23,10 +23,10 @@ def create_brain_extractor(brain):
     return brain_extractor
 
 
-def create_tumor_extractor(tumor):
-    tumor_extractor = vtk.vtkDiscreteMarchingCubes()
-    tumor_extractor.SetInputConnection(tumor.reader.GetOutputPort())
-    return tumor_extractor
+def create_mask_extractor(mask):
+    mask_extractor = vtk.vtkDiscreteMarchingCubes()
+    mask_extractor.SetInputConnection(mask.reader.GetOutputPort())
+    return mask_extractor
 
 
 def create_polygon_reducer(extractor):
@@ -63,7 +63,7 @@ def create_mapper(stripper):
     brain_mapper = vtk.vtkPolyDataMapper()
     brain_mapper.SetInputConnection(stripper.GetOutputPort())
     brain_mapper.ScalarVisibilityOff()
-    # brain_mapper.SetLookupTable(create_tumor_table())
+    # brain_mapper.SetLookupTable(create_mask_table())
     brain_mapper.Update()
     return brain_mapper
 
@@ -82,7 +82,7 @@ def create_actor(mapper, prop):
     return actor
 
 
-def create_tumor_table():
+def create_mask_table():
     m_mask_opacity = 1
     brain_lut = vtk.vtkLookupTable()
     brain_lut.SetRange(0, 4)
@@ -206,16 +206,16 @@ def setup_brain(renderer, file):
     return brain
 
 
-def setup_tumor(renderer, file):
-    tumor = NiiObject()
-    tumor.file = file
-    tumor.reader = read_volume(tumor.file)
-    n_labels = int(tumor.reader.GetOutput().GetScalarRange()[1])
+def setup_mask(renderer, file):
+    mask = NiiObject()
+    mask.file = file
+    mask.reader = read_volume(mask.file)
+    n_labels = int(mask.reader.GetOutput().GetScalarRange()[1])
     n_labels = n_labels if n_labels <= 10 else 10
 
     for label_idx in range(n_labels):
-        tumor.labels.append(NiiLabel(TUMOR_COLORS[label_idx], TUMOR_OPACITY, TUMOR_SMOOTHNESS))
-        tumor.labels[label_idx].extractor = create_tumor_extractor(tumor)
-        add_surface_rendering(tumor, label_idx, label_idx + 1)
-        # renderer.AddActor(tumor.labels[label_idx].actor)
-    return tumor
+        mask.labels.append(NiiLabel(MASK_COLORS[label_idx], MASK_OPACITY, MASK_SMOOTHNESS))
+        mask.labels[label_idx].extractor = create_mask_extractor(mask)
+        add_surface_rendering(mask, label_idx, label_idx + 1)
+        # renderer.AddActor(mask.labels[label_idx].actor)
+    return mask

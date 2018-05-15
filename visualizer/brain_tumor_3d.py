@@ -31,6 +31,6 @@ if __name__ == "__main__":
     redirect_vtk_messages()
     app = QtWidgets.QApplication(sys.argv)
     app.BRAIN_FILE = args.i
-    app.TUMOR_FILE = args.m
+    app.MASK_FILE = args.m
     window = MainWindow(app)
     sys.exit(app.exec_())

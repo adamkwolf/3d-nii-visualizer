@@ -15,18 +15,18 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
 
         # base setup
         self.renderer, self.frame, self.vtk_widget, self.interactor, self.render_window = self.setup()
-        self.brain, self.tumor = setup_brain(self.renderer, self.app.BRAIN_FILE), setup_tumor(self.renderer,
-                                                                                              self.app.TUMOR_FILE)
+        self.brain, self.mask = setup_brain(self.renderer, self.app.BRAIN_FILE), setup_mask(self.renderer,
+                                                                                              self.app.MASK_FILE)
 
         # setup brain projection and slicer
         self.brain_image_prop = setup_projection(self.brain, self.renderer)
         self.brain_slicer_props = setup_slicer(self.renderer, self.brain.reader)  # breaking something with rotation
 
-        # must add brain and tumor to view last
-        n_labels = int(self.tumor.reader.GetOutput().GetScalarRange()[1])
+        # must add brain and mask to view last
+        n_labels = int(self.mask.reader.GetOutput().GetScalarRange()[1])
         n_labels = n_labels if n_labels <= 10 else 10
         for label_idx in range(n_labels):
-            self.renderer.AddActor(self.tumor.labels[label_idx].actor)
+            self.renderer.AddActor(self.mask.labels[label_idx].actor)
         self.renderer.AddActor(self.brain.labels[0].actor)
 
         # brain pickers
@@ -36,10 +36,10 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.brain_projection_cb = self.add_brain_projection()
         self.brain_slicer_cb = self.add_brain_slicer()
 
-        # tumor pickers
-        self.tumor_opacity_sp = self.create_new_picker(1.0, 0.0, 0.1, TUMOR_OPACITY, self.tumor_opacity_vc)
-        self.tumor_smoothness_sp = self.create_new_picker(1000, 100, 100, TUMOR_SMOOTHNESS, self.tumor_smoothness_vc)
-        self.tumor_label_cbs = []
+        # mask pickers
+        self.mask_opacity_sp = self.create_new_picker(1.0, 0.0, 0.1, MASK_OPACITY, self.mask_opacity_vc)
+        self.mask_smoothness_sp = self.create_new_picker(1000, 100, 100, MASK_SMOOTHNESS, self.mask_smoothness_vc)
+        self.mask_label_cbs = []
 
         # create grid for all widgets
         self.grid = QtWidgets.QGridLayout()
@@ -47,7 +47,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         # add each widget
         self.add_vtk_window_widget()
         self.add_brain_settings_widget()
-        self.add_tumor_settings_widget()
+        self.add_mask_settings_widget()
         self.add_views_widget()
 
         #  set layout and show
@@ -84,8 +84,8 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
 
     def add_vtk_window_widget(self):
         base_brain_file = os.path.basename(self.app.BRAIN_FILE)
-        base_tumor_file = os.path.basename(self.app.TUMOR_FILE)
-        object_title = str.format("Brain: {}          Tumor: {}", base_brain_file, base_tumor_file)
+        base_mask_file = os.path.basename(self.app.MASK_FILE)
+        object_title = str.format("Brain: {}          Mask: {}", base_brain_file, base_mask_file)
         object_group_box = QtWidgets.QGroupBox(object_title)
         object_layout = QtWidgets.QVBoxLayout()
         object_layout.addWidget(self.vtk_widget)
@@ -115,37 +115,37 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         brain_group_box.setLayout(brain_group_layout)
         self.grid.addWidget(brain_group_box, 0, 0, 1, 2)
 
-    def add_tumor_settings_widget(self):
-        tumor_settings_group_box = QtWidgets.QGroupBox("Tumor Settings")
-        tumor_settings_layout = QtWidgets.QGridLayout()
-        tumor_settings_layout.addWidget(QtWidgets.QLabel("Tumor Opacity"), 0, 0)
-        tumor_settings_layout.addWidget(QtWidgets.QLabel("Tumor Smoothness"), 1, 0)
-        tumor_settings_layout.addWidget(self.tumor_opacity_sp, 0, 1)
-        tumor_settings_layout.addWidget(self.tumor_smoothness_sp, 1, 1)
-        tumor_multi_color_radio = QtWidgets.QRadioButton("Multi Color")
-        tumor_multi_color_radio.setChecked(True)
-        tumor_multi_color_radio.clicked.connect(self.tumor_multi_color_radio_checked)
-        tumor_single_color_radio = QtWidgets.QRadioButton("Single Color")
-        tumor_single_color_radio.clicked.connect(self.tumor_single_color_radio_checked)
-        tumor_settings_layout.addWidget(tumor_multi_color_radio, 2, 0)
-        tumor_settings_layout.addWidget(tumor_single_color_radio, 2, 1)
-        tumor_settings_layout.addWidget(self.create_new_separator(), 3, 0, 1, 2)
+    def add_mask_settings_widget(self):
+        mask_settings_group_box = QtWidgets.QGroupBox("Mask Settings")
+        mask_settings_layout = QtWidgets.QGridLayout()
+        mask_settings_layout.addWidget(QtWidgets.QLabel("Mask Opacity"), 0, 0)
+        mask_settings_layout.addWidget(QtWidgets.QLabel("Mask Smoothness"), 1, 0)
+        mask_settings_layout.addWidget(self.mask_opacity_sp, 0, 1)
+        mask_settings_layout.addWidget(self.mask_smoothness_sp, 1, 1)
+        mask_multi_color_radio = QtWidgets.QRadioButton("Multi Color")
+        mask_multi_color_radio.setChecked(True)
+        mask_multi_color_radio.clicked.connect(self.mask_multi_color_radio_checked)
+        mask_single_color_radio = QtWidgets.QRadioButton("Single Color")
+        mask_single_color_radio.clicked.connect(self.mask_single_color_radio_checked)
+        mask_settings_layout.addWidget(mask_multi_color_radio, 2, 0)
+        mask_settings_layout.addWidget(mask_single_color_radio, 2, 1)
+        mask_settings_layout.addWidget(self.create_new_separator(), 3, 0, 1, 2)
 
-        self.tumor_label_cbs = []
+        self.mask_label_cbs = []
         c_col, c_row = 0, 4  # c_row must always be (+1) of last row
         for i in range(1, 11):
-            self.tumor_label_cbs.append(QtWidgets.QCheckBox("Label {}".format(i)))
-            tumor_settings_layout.addWidget(self.tumor_label_cbs[i - 1], c_row, c_col)
+            self.mask_label_cbs.append(QtWidgets.QCheckBox("Label {}".format(i)))
+            mask_settings_layout.addWidget(self.mask_label_cbs[i - 1], c_row, c_col)
             c_row = c_row + 1 if c_col == 1 else c_row
             c_col = 0 if c_col == 1 else 1
 
-        tumor_settings_group_box.setLayout(tumor_settings_layout)
-        self.grid.addWidget(tumor_settings_group_box, 1, 0, 2, 2)
+        mask_settings_group_box.setLayout(mask_settings_layout)
+        self.grid.addWidget(mask_settings_group_box, 1, 0, 2, 2)
 
-        for i, cb in enumerate(self.tumor_label_cbs):
-            if i < len(self.tumor.labels) and self.tumor.labels[i].actor:
+        for i, cb in enumerate(self.mask_label_cbs):
+            if i < len(self.mask.labels) and self.mask.labels[i].actor:
                 cb.setChecked(True)
-                cb.clicked.connect(self.tumor_label_checked)
+                cb.clicked.connect(self.mask_label_checked)
             else:
                 cb.setDisabled(True)
 
@@ -183,22 +183,22 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         projection_cb.clicked.connect(self.brain_projection_vc)
         return projection_cb
 
-    def tumor_label_checked(self):
-        for i, cb in enumerate(self.tumor_label_cbs):
+    def mask_label_checked(self):
+        for i, cb in enumerate(self.mask_label_cbs):
             if cb.isChecked():
-                self.tumor.labels[i].property.SetOpacity(self.tumor_opacity_sp.value())
+                self.mask.labels[i].property.SetOpacity(self.mask_opacity_sp.value())
             elif cb.isEnabled():  # labels without data are disabled
-                self.tumor.labels[i].property.SetOpacity(0)
+                self.mask.labels[i].property.SetOpacity(0)
         self.render_window.Render()
 
-    def tumor_single_color_radio_checked(self):
-        for label in self.tumor.labels:
+    def mask_single_color_radio_checked(self):
+        for label in self.mask.labels:
             if label.property:
-                label.property.SetColor(TUMOR_COLORS[0])
+                label.property.SetColor(MASK_COLORS[0])
         self.render_window.Render()
 
-    def tumor_multi_color_radio_checked(self):
-        for label in self.tumor.labels:
+    def mask_multi_color_radio_checked(self):
+        for label in self.mask.labels:
             if label.property:
                 label.property.SetColor(label.color)
         self.render_window.Render()
@@ -240,17 +240,17 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.brain.labels[0].smoother.SetNumberOfIterations(smoothness)
         self.render_window.Render()
 
-    def tumor_opacity_vc(self):
-        opacity = round(self.tumor_opacity_sp.value(), 2)
-        for label in self.tumor.labels:
+    def mask_opacity_vc(self):
+        opacity = round(self.mask_opacity_sp.value(), 2)
+        for label in self.mask.labels:
             if label.property:
                 label.property.SetOpacity(opacity)
         self.render_window.Render()
 
-    def tumor_smoothness_vc(self):
+    def mask_smoothness_vc(self):
         self.process_changes()
-        smoothness = self.tumor_smoothness_sp.value()
-        for label in self.tumor.labels:
+        smoothness = self.mask_smoothness_sp.value()
+        for label in self.mask.labels:
             if label.smoother:
                 label.smoother.SetNumberOfIterations(smoothness)
         self.render_window.Render()
