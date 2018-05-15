@@ -9,7 +9,15 @@ BRAIN_COLORS = [(1.0, 0.9, 0.9)]  # RGB percentages
 
 # default tumor settings
 TUMOR_SMOOTHNESS = 500
-TUMOR_COLORS = [(1, 0, 0), (0, 1, 0), (0.5, 0.5, 0), (0, 0, 1)]  # RGB percentages
+TUMOR_COLORS = [(1, 0, 0),
+                (0, 1, 0),
+                (1, 1, 0),
+                (0, 0, 1),
+                (1, 0, 1),
+                (0, 1, 1),
+                (1, 0.5, 0.5),
+                (0.5, 1, 0.5),
+                (0.5, 0.5, 1)]  # RGB percentages
 TUMOR_OPACITY = 1.0
 
 # files to load into view
