@@ -8,6 +8,10 @@ error_observer = ErrorObserver()
 
 
 def read_volume(file_name):
+    """
+    :param file_name: The filename of type 'nii.gz'
+    :return: vtkNIFTIImageReader (https://www.vtk.org/doc/nightly/html/classvtkNIFTIImageReader.html)
+    """
     reader = vtk.vtkNIFTIImageReader()
     reader.SetFileNameSliceOffset(1)
     reader.SetDataByteOrderToBigEndian()
@@ -17,6 +21,12 @@ def read_volume(file_name):
 
 
 def create_brain_extractor(brain):
+    """
+    Given the output from brain (vtkNIFTIImageReader) extract it into 3D using
+    vtkFlyingEdges3D algorithm (https://www.vtk.org/doc/nightly/html/classvtkFlyingEdges3D.html)
+    :param brain: a vtkNIFTIImageReader volume containing the brain
+    :return: the extracted volume from vtkFlyingEdges3D
+    """
     brain_extractor = vtk.vtkFlyingEdges3D()
     brain_extractor.SetInputConnection(brain.reader.GetOutputPort())
     brain_extractor.SetValue(0, BRAIN_THRESHOLD)
@@ -24,22 +34,41 @@ def create_brain_extractor(brain):
 
 
 def create_mask_extractor(mask):
+    """
+    Given the output from mask (vtkNIFTIImageReader) extract it into 3D using
+    vtkDiscreteMarchingCubes algorithm (https://www.vtk.org/doc/release/5.0/html/a01331.html).
+    This algorithm is specialized for reading segmented volume labels.
+    :param mask: a vtkNIFTIImageReader volume containing the mask
+    :return: the extracted volume from vtkDiscreteMarchingCubes
+    """
     mask_extractor = vtk.vtkDiscreteMarchingCubes()
     mask_extractor.SetInputConnection(mask.reader.GetOutputPort())
     return mask_extractor
 
 
 def create_polygon_reducer(extractor):
+    """
+    Reduces the number of polygons (triangles) in the volume. This is used to speed up rendering.
+    (https://www.vtk.org/doc/nightly/html/classvtkDecimatePro.html)
+    :param extractor: an extractor (vtkPolyDataAlgorithm), will be either vtkFlyingEdges3D or vtkDiscreteMarchingCubes
+    :return: the decimated volume
+    """
     reducer = vtk.vtkDecimatePro()
-    reducer.AddObserver('ErrorEvent', error_observer)  # used to detect labels that don't exist
+    reducer.AddObserver('ErrorEvent', error_observer)  # throws an error event if there is no data to decimate
     reducer.SetInputConnection(extractor.GetOutputPort())
-    reducer.SetTargetReduction(0.5)
+    reducer.SetTargetReduction(0.5)  # magic number
     reducer.PreserveTopologyOn()
-
     return reducer
 
 
 def create_smoother(reducer, smoothness):
+    """
+    Reorients some points in the volume to smooth the render edges.
+    (https://www.vtk.org/doc/nightly/html/classvtkSmoothPolyDataFilter.html)
+    :param reducer:
+    :param smoothness:
+    :return:
+    """
     smoother = vtk.vtkSmoothPolyDataFilter()
     smoother.SetInputConnection(reducer.GetOutputPort())
     smoother.SetNumberOfIterations(smoothness)
