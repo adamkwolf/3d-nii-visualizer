@@ -1,5 +1,3 @@
-import os
-
 # default brain settings
 APPLICATION_TITLE = "Theia – NIfTI (nii.gz) 3D Visualizer"
 BRAIN_THRESHOLD = 20

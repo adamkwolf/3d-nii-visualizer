@@ -6,6 +6,16 @@ from NiiLabel import *
 
 error_observer = ErrorObserver()
 
+'''
+VTK Pipeline:   reader ->
+                extractor -> 
+                decimate -> 
+                smoother -> 
+                normalizer -> 
+                stripper -> 
+                mapper
+'''
+
 
 def read_volume(file_name):
     """
@@ -76,9 +86,16 @@ def create_smoother(reducer, smoothness):
 
 
 def create_normals(smoother):
+    """
+    The filter can reorder polygons to insure consistent orientation across polygon neighbors. Sharp edges can be split
+    and points duplicated with separate normals to give crisp (rendered) surface definition.
+    (https://www.vtk.org/doc/nightly/html/classvtkPolyDataNormals.html)
+    :param smoother:
+    :return:
+    """
     brain_normals = vtk.vtkPolyDataNormals()
     brain_normals.SetInputConnection(smoother.GetOutputPort())
-    brain_normals.SetFeatureAngle(60.0)  # controls the smoothness of the edges
+    brain_normals.SetFeatureAngle(60.0)  #
     return brain_normals
 
 
@@ -176,26 +193,29 @@ def setup_slicer(renderer, reader):
     view_colors.SetLookupTable(bw_lut)
     view_colors.Update()
 
+    sl = int(reader.GetQFormMatrix().GetElement(1, 3))
+
     sagittal = vtk.vtkImageActor()
     sag_prop = vtk.vtkImageProperty()
     sag_prop.SetOpacity(0)
     sagittal.SetProperty(sag_prop)
     sagittal.GetMapper().SetInputConnection(view_colors.GetOutputPort())
-    sagittal.SetDisplayExtent(128, 128, 0, 255, 0, 255)
+    slice_loc = int(reader.GetQFormMatrix().GetElement(1, 3)/2)
+    sagittal.SetDisplayExtent(slice_loc, slice_loc, 0, sl, 0, sl)
 
     axial = vtk.vtkImageActor()
     axial_prop = vtk.vtkImageProperty()
     axial_prop.SetOpacity(0)
     axial.SetProperty(axial_prop)
     axial.GetMapper().SetInputConnection(view_colors.GetOutputPort())
-    axial.SetDisplayExtent(0, 255, 0, 255, 75, 255)
+    axial.SetDisplayExtent(0, sl, 0, sl, 75, sl)
 
     coronal = vtk.vtkImageActor()
     cor_prop = vtk.vtkImageProperty()
     cor_prop.SetOpacity(0)
     coronal.SetProperty(cor_prop)
     coronal.GetMapper().SetInputConnection(view_colors.GetOutputPort())
-    coronal.SetDisplayExtent(0, 255, 128, 128, 0, 255)
+    coronal.SetDisplayExtent(0, sl, 128, 128, 0, sl)
 
     # renderer.AddActor(sagittal)
     # renderer.AddActor(axial)

@@ -1,5 +1,6 @@
 import math
 import time
+import os
 
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as Qt
@@ -57,6 +58,10 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.setCentralWidget(self.frame)
         self.set_axial_view()
         self.interactor.Initialize()
+
+        # fix issue with rotation
+        self.renderer.GetActiveCamera().SetFocalPoint(93.3034998178482, 124.56749975681305, 95.5)
+        self.renderer.GetActiveCamera().SetPosition(93.3034998178482, 124.56749975681305, 801.0132293735836)
         self.show()
 
     @staticmethod
