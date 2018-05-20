@@ -12,7 +12,6 @@ VTK Pipeline:   reader ->
                 decimate -> 
                 smoother -> 
                 normalizer -> 
-                stripper -> 
                 mapper
 '''
 
@@ -99,17 +98,10 @@ def create_normals(smoother):
     return brain_normals
 
 
-def create_stripper(normals):
-    brain_stripper = vtk.vtkStripper()
-    brain_stripper.SetInputConnection(normals.GetOutputPort())
-    return brain_stripper
-
-
 def create_mapper(stripper):
     brain_mapper = vtk.vtkPolyDataMapper()
     brain_mapper.SetInputConnection(stripper.GetOutputPort())
     brain_mapper.ScalarVisibilityOff()
-    # brain_mapper.SetLookupTable(create_mask_table())
     brain_mapper.Update()
     return brain_mapper
 
@@ -171,8 +163,7 @@ def add_surface_rendering(nii_object, label_idx, label_value):
         reducer = create_polygon_reducer(nii_object.labels[label_idx].extractor)
         smoother = create_smoother(reducer, nii_object.labels[label_idx].smoothness)
         normals = create_normals(smoother)
-        stripper = create_stripper(normals)
-        actor_mapper = create_mapper(stripper)
+        actor_mapper = create_mapper(normals)
         actor_property = create_property(nii_object.labels[label_idx].opacity, nii_object.labels[label_idx].color)
         actor = create_actor(actor_mapper, actor_property)
         nii_object.labels[label_idx].actor = actor
@@ -217,9 +208,9 @@ def setup_slicer(renderer, reader):
     coronal.GetMapper().SetInputConnection(view_colors.GetOutputPort())
     coronal.SetDisplayExtent(0, sl, 128, 128, 0, sl)
 
-    # renderer.AddActor(sagittal)
-    # renderer.AddActor(axial)
-    # renderer.AddActor(coronal)
+    renderer.AddActor(sagittal)
+    renderer.AddActor(axial)
+    renderer.AddActor(coronal)
 
     return [sagittal, axial, coronal]
 

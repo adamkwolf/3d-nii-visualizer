@@ -17,11 +17,11 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         # base setup
         self.renderer, self.frame, self.vtk_widget, self.interactor, self.render_window = self.setup()
         self.brain, self.mask = setup_brain(self.renderer, self.app.BRAIN_FILE), setup_mask(self.renderer,
-                                                                                              self.app.MASK_FILE)
+                                                                                            self.app.MASK_FILE)
 
         # setup brain projection and slicer
         self.brain_image_prop = setup_projection(self.brain, self.renderer)
-        self.brain_slicer_props = setup_slicer(self.renderer, self.brain.reader)  # breaking something with rotation
+        self.brain_slicer_props = setup_slicer(self.renderer, self.brain.reader)  # causing issues with rotation
 
         # must add brain and mask to view last
         n_labels = int(self.mask.reader.GetOutput().GetScalarRange()[1])
@@ -60,8 +60,8 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.interactor.Initialize()
 
         # fix issue with rotation
-        self.renderer.GetActiveCamera().SetFocalPoint(93.3034998178482, 124.56749975681305, 95.5)
-        self.renderer.GetActiveCamera().SetPosition(93.3034998178482, 124.56749975681305, 801.0132293735836)
+        # self.renderer.GetActiveCamera().SetFocalPoint(93.3034998178482, 124.56749975681305, 95.5)
+        # self.renderer.GetActiveCamera().SetPosition(93.3034998178482, 124.56749975681305, 801.0132293735836)
         self.show()
 
     @staticmethod
@@ -83,7 +83,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         return renderer, frame, vtk_widget, interactor, render_window
 
     def add_brain_slicer(self):
-        slicer_cb = QtWidgets.QRadioButton("Slicer")
+        slicer_cb = QtWidgets.QCheckBox("Slicer")
         slicer_cb.clicked.connect(self.brain_slicer_vc)
         return slicer_cb
 
@@ -94,10 +94,10 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         object_group_box = QtWidgets.QGroupBox(object_title)
         object_layout = QtWidgets.QVBoxLayout()
         object_layout.addWidget(self.vtk_widget)
-        # self.vtk_widget.setFixedSize(650, 650)
-        # self.vtk_widget.setBaseSize(650, 650)
         object_group_box.setLayout(object_layout)
         self.grid.addWidget(object_group_box, 0, 2, 5, 5)
+        # must manually set column width for vtk_widget to maintain height:width ratio
+        self.grid.setColumnMinimumWidth(2, 700)
 
     def add_brain_settings_widget(self):
         brain_group_box = QtWidgets.QGroupBox("Brain Settings")
@@ -184,7 +184,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         return picker
 
     def add_brain_projection(self):
-        projection_cb = QtWidgets.QRadioButton("Projection")
+        projection_cb = QtWidgets.QCheckBox("Projection")
         projection_cb.clicked.connect(self.brain_projection_vc)
         return projection_cb
 
@@ -209,23 +209,16 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.render_window.Render()
 
     def brain_projection_vc(self):
-        proj_checked = self.brain_projection_cb.isChecked()
-        for prop in self.brain_slicer_props:
-            if proj_checked:
-                prop.GetProperty().SetOpacity(0.0)
-                self.brain_image_prop.SetOpacity(1.0)
-            else:
-                prop.GetProperty().SetOpacity(1.0)
+        projection_checked = self.brain_projection_cb.isChecked()
+        self.brain_slicer_cb.setDisabled(projection_checked)  # disable slicer checkbox, cant use both at same time
+        self.brain_image_prop.SetOpacity(projection_checked)
         self.render_window.Render()
 
     def brain_slicer_vc(self):
-        checked = self.brain_slicer_cb.isChecked()
+        slicer_checked = self.brain_slicer_cb.isChecked()
+        self.brain_projection_cb.setDisabled(slicer_checked)  # disable projection checkbox, cant use both at same time
         for prop in self.brain_slicer_props:
-            if checked:
-                prop.GetProperty().SetOpacity(1.0)
-                self.brain_image_prop.SetOpacity(0.0)
-            else:
-                prop.GetProperty().SetOpacity(0.0)
+            prop.GetProperty().SetOpacity(slicer_checked)
         self.render_window.Render()
 
     def brain_opacity_vc(self):
