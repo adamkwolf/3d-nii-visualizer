@@ -70,7 +70,9 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         interactor.SetRenderWindow(render_window)
         interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
 
-
+        renderer.SetUseDepthPeeling(True)
+        render_window.SetAlphaBitPlanes(True)
+        render_window.SetMultiSamples(0)
 
         return renderer, frame, vtk_widget, interactor, render_window
 
@@ -110,33 +112,40 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         # order is important
         slicer_funcs = [self.axial_slice_changed, self.coronal_slice_changed, self.sagittal_slice_changed]
         self.slicer_widgets = []
-        middle_values = [75, 120, 120]
         current_label_row = 5
-        for i, func in enumerate(slicer_funcs):
+        # data extent is array [xmin, xmax, ymin, ymax, zmin, zmax)
+        # we want all the max values for the range
+        extent_index = 5
+        for func in slicer_funcs:
             slice_widget = QtWidgets.QSlider(Qt.Qt.Horizontal)
+            slice_widget.setDisabled(True)
             self.slicer_widgets.append(slice_widget)
             brain_group_layout.addWidget(slice_widget, current_label_row, 1, 1, 2)
             slice_widget.valueChanged.connect(func)
-            slice_widget.setRange(0, middle_values[i]*2)
-            slice_widget.setValue(middle_values[i])
+            slice_widget.setRange(self.brain.extent[extent_index - 1], self.brain.extent[extent_index])
+            slice_widget.setValue(self.brain.extent[extent_index] / 2)
             current_label_row += 1
+            extent_index -= 2
 
         brain_group_box.setLayout(brain_group_layout)
         self.grid.addWidget(brain_group_box, 0, 0, 1, 2)
 
     def axial_slice_changed(self):
         pos = self.slicer_widgets[0].value()
-        self.brain_slicer_props[0].SetDisplayExtent(0, 239, 0, 239, pos, pos)  # fix 239
+        self.brain_slicer_props[0].SetDisplayExtent(self.brain.extent[0], self.brain.extent[1], self.brain.extent[2],
+                                                    self.brain.extent[3], pos, pos)
         self.render_window.Render()
 
     def coronal_slice_changed(self):
         pos = self.slicer_widgets[1].value()
-        self.brain_slicer_props[1].SetDisplayExtent(0, 239, pos, pos, 0, 239)  # fix 239
+        self.brain_slicer_props[1].SetDisplayExtent(self.brain.extent[0], self.brain.extent[1], pos, pos,
+                                                    self.brain.extent[4], self.brain.extent[5])
         self.render_window.Render()
 
     def sagittal_slice_changed(self):
         pos = self.slicer_widgets[2].value()
-        self.brain_slicer_props[2].SetDisplayExtent(pos, pos, 0, 239, 0, 239)  # fix 239
+        self.brain_slicer_props[2].SetDisplayExtent(pos, pos, self.brain.extent[2], self.brain.extent[3],
+                                                    self.brain.extent[4], self.brain.extent[5])
         self.render_window.Render()
 
     def add_mask_settings_widget(self):
@@ -235,6 +244,10 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
 
     def brain_slicer_vc(self):
         slicer_checked = self.brain_slicer_cb.isChecked()
+
+        for widget in self.slicer_widgets:
+            widget.setEnabled(slicer_checked)
+
         self.brain_projection_cb.setDisabled(slicer_checked)  # disable projection checkbox, cant use both at same time
         for prop in self.brain_slicer_props:
             prop.GetProperty().SetOpacity(slicer_checked)
@@ -259,8 +272,8 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
 
     def mask_opacity_vc(self):
         opacity = round(self.mask_opacity_sp.value(), 2)
-        for label in self.mask.labels:
-            if label.property:
+        for i, label in enumerate(self.mask.labels):
+            if label.property and self.mask_label_cbs[i].isChecked():
                 label.property.SetOpacity(opacity)
         self.render_window.Render()
 

@@ -172,8 +172,9 @@ def add_surface_rendering(nii_object, label_idx, label_value):
 
 
 def setup_slicer(renderer, brain):
+    scalar_range = brain.reader.GetOutput().GetScalarRange()
     bw_lut = vtk.vtkLookupTable()
-    bw_lut.SetTableRange(0, 2000)
+    bw_lut.SetTableRange(scalar_range)
     bw_lut.SetSaturationRange(0, 0)
     bw_lut.SetHueRange(0, 0)
     bw_lut.SetValueRange(0, 1)
@@ -184,14 +185,16 @@ def setup_slicer(renderer, brain):
     view_colors.SetLookupTable(bw_lut)
     view_colors.Update()
 
-    sl = int(brain.reader.GetQFormMatrix().GetElement(1, 3))
+    x = brain.extent[1]
+    y = brain.extent[3]
+    z = brain.extent[5]
 
     axial = vtk.vtkImageActor()
     axial_prop = vtk.vtkImageProperty()
     axial_prop.SetOpacity(0)
     axial.SetProperty(axial_prop)
     axial.GetMapper().SetInputConnection(view_colors.GetOutputPort())
-    axial.SetDisplayExtent(0, sl, 0, sl, 75, 75)
+    axial.SetDisplayExtent(0, x, 0, y, int(z/2), int(z/2))
     axial.InterpolateOn()
     axial.ForceOpaqueOn()
 
@@ -200,28 +203,28 @@ def setup_slicer(renderer, brain):
     cor_prop.SetOpacity(0)
     coronal.SetProperty(cor_prop)
     coronal.GetMapper().SetInputConnection(view_colors.GetOutputPort())
-    coronal.SetDisplayExtent(0, sl, int(sl/2), int(sl/2), 0, sl)
+    coronal.SetDisplayExtent(0, x, int(y/2), int(y/2), 0, z)
     coronal.InterpolateOn()
     coronal.ForceOpaqueOn()
 
-    slice_loc = int(brain.reader.GetQFormMatrix().GetElement(1, 3)/2)
     sagittal = vtk.vtkImageActor()
     sag_prop = vtk.vtkImageProperty()
     sag_prop.SetOpacity(0)
     sagittal.SetProperty(sag_prop)
     sagittal.GetMapper().SetInputConnection(view_colors.GetOutputPort())
-    sagittal.SetDisplayExtent(slice_loc, slice_loc, 0, sl, 0, sl)
+    sagittal.SetDisplayExtent(int(x/2), int(x/2), 0, y, 0, z)
     sagittal.InterpolateOn()
     sagittal.ForceOpaqueOn()
 
-    # renderer.AddActor(axial)
-    # renderer.AddActor(coronal)
-    # renderer.AddActor(sagittal)
+    renderer.AddActor(axial)
+    renderer.AddActor(coronal)
+    renderer.AddActor(sagittal)
 
     return [axial, coronal, sagittal]
 
 
 def setup_projection(brain, renderer):
+    scalar_range = brain.reader.GetOutput().GetScalarRange()
     slice_mapper = vtk.vtkImageResliceMapper()
     slice_mapper.SetInputConnection(brain.reader.GetOutputPort())
     slice_mapper.SliceFacesCameraOn()
@@ -229,7 +232,7 @@ def setup_projection(brain, renderer):
     slice_mapper.BorderOff()
 
     bw_lut = vtk.vtkLookupTable()
-    bw_lut.SetTableRange(0, 2000)
+    bw_lut.SetTableRange(scalar_range)
     bw_lut.SetSaturationRange(0, 0)
     bw_lut.SetHueRange(0, 0)
     bw_lut.SetValueRange(0, 1)
@@ -257,6 +260,7 @@ def setup_brain(renderer, file):
     brain.reader = read_volume(brain.file)
     brain.labels.append(NiiLabel(BRAIN_COLORS[0], BRAIN_OPACITY, BRAIN_SMOOTHNESS))
     brain.labels[0].extractor = create_brain_extractor(brain)
+    brain.extent = brain.reader.GetDataExtent()
     add_surface_rendering(brain, 0, 20)
     renderer.AddActor(brain.labels[0].actor)
     return brain
@@ -266,6 +270,7 @@ def setup_mask(renderer, file):
     mask = NiiObject()
     mask.file = file
     mask.reader = read_volume(mask.file)
+    mask.extent = mask.reader.GetDataExtent()
     n_labels = int(mask.reader.GetOutput().GetScalarRange()[1])
     n_labels = n_labels if n_labels <= 10 else 10
 
