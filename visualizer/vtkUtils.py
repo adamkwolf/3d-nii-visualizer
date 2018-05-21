@@ -171,7 +171,7 @@ def add_surface_rendering(nii_object, label_idx, label_value):
         nii_object.labels[label_idx].property = actor_property
 
 
-def setup_slicer(renderer, reader):
+def setup_slicer(renderer, brain):
     bw_lut = vtk.vtkLookupTable()
     bw_lut.SetTableRange(0, 2000)
     bw_lut.SetSaturationRange(0, 0)
@@ -180,39 +180,45 @@ def setup_slicer(renderer, reader):
     bw_lut.Build()
 
     view_colors = vtk.vtkImageMapToColors()
-    view_colors.SetInputConnection(reader.GetOutputPort())
+    view_colors.SetInputConnection(brain.reader.GetOutputPort())
     view_colors.SetLookupTable(bw_lut)
     view_colors.Update()
 
-    sl = int(reader.GetQFormMatrix().GetElement(1, 3))
-
-    sagittal = vtk.vtkImageActor()
-    sag_prop = vtk.vtkImageProperty()
-    sag_prop.SetOpacity(0)
-    sagittal.SetProperty(sag_prop)
-    sagittal.GetMapper().SetInputConnection(view_colors.GetOutputPort())
-    slice_loc = int(reader.GetQFormMatrix().GetElement(1, 3)/2)
-    sagittal.SetDisplayExtent(slice_loc, slice_loc, 0, sl, 0, sl)
+    sl = int(brain.reader.GetQFormMatrix().GetElement(1, 3))
 
     axial = vtk.vtkImageActor()
     axial_prop = vtk.vtkImageProperty()
     axial_prop.SetOpacity(0)
     axial.SetProperty(axial_prop)
     axial.GetMapper().SetInputConnection(view_colors.GetOutputPort())
-    axial.SetDisplayExtent(0, sl, 0, sl, 75, sl)
+    axial.SetDisplayExtent(0, sl, 0, sl, 75, 75)
+    axial.InterpolateOn()
+    axial.ForceOpaqueOn()
 
     coronal = vtk.vtkImageActor()
     cor_prop = vtk.vtkImageProperty()
     cor_prop.SetOpacity(0)
     coronal.SetProperty(cor_prop)
     coronal.GetMapper().SetInputConnection(view_colors.GetOutputPort())
-    coronal.SetDisplayExtent(0, sl, 128, 128, 0, sl)
+    coronal.SetDisplayExtent(0, sl, int(sl/2), int(sl/2), 0, sl)
+    coronal.InterpolateOn()
+    coronal.ForceOpaqueOn()
 
-    renderer.AddActor(sagittal)
-    renderer.AddActor(axial)
-    renderer.AddActor(coronal)
+    slice_loc = int(brain.reader.GetQFormMatrix().GetElement(1, 3)/2)
+    sagittal = vtk.vtkImageActor()
+    sag_prop = vtk.vtkImageProperty()
+    sag_prop.SetOpacity(0)
+    sagittal.SetProperty(sag_prop)
+    sagittal.GetMapper().SetInputConnection(view_colors.GetOutputPort())
+    sagittal.SetDisplayExtent(slice_loc, slice_loc, 0, sl, 0, sl)
+    sagittal.InterpolateOn()
+    sagittal.ForceOpaqueOn()
 
-    return [sagittal, axial, coronal]
+    # renderer.AddActor(axial)
+    # renderer.AddActor(coronal)
+    # renderer.AddActor(sagittal)
+
+    return [axial, coronal, sagittal]
 
 
 def setup_projection(brain, renderer):
@@ -221,16 +227,26 @@ def setup_projection(brain, renderer):
     slice_mapper.SliceFacesCameraOn()
     slice_mapper.SliceAtFocalPointOn()
     slice_mapper.BorderOff()
+
+    bw_lut = vtk.vtkLookupTable()
+    bw_lut.SetTableRange(0, 2000)
+    bw_lut.SetSaturationRange(0, 0)
+    bw_lut.SetHueRange(0, 0)
+    bw_lut.SetValueRange(0, 1)
+    bw_lut.Build()
+
+    view_colors = vtk.vtkImageMapToColors()
+    view_colors.SetInputConnection(brain.reader.GetOutputPort())
+    view_colors.SetLookupTable(bw_lut)
+    view_colors.Update()
+
     brain_image_prop = vtk.vtkImageProperty()
-    brain_image_prop.SetColorWindow(500)
-    brain_image_prop.SetColorLevel(500)
-    brain_image_prop.SetAmbient(1.0)
-    brain_image_prop.SetDiffuse(1.0)
     brain_image_prop.SetOpacity(0.0)
     brain_image_prop.SetInterpolationTypeToLinear()
     image_slice = vtk.vtkImageSlice()
     image_slice.SetMapper(slice_mapper)
     image_slice.SetProperty(brain_image_prop)
+    image_slice.GetMapper().SetInputConnection(view_colors.GetOutputPort())
     renderer.AddViewProp(image_slice)
     return brain_image_prop
 
@@ -242,7 +258,7 @@ def setup_brain(renderer, file):
     brain.labels.append(NiiLabel(BRAIN_COLORS[0], BRAIN_OPACITY, BRAIN_SMOOTHNESS))
     brain.labels[0].extractor = create_brain_extractor(brain)
     add_surface_rendering(brain, 0, 20)
-    # renderer.AddActor(brain.labels[0].actor)
+    renderer.AddActor(brain.labels[0].actor)
     return brain
 
 
@@ -257,5 +273,5 @@ def setup_mask(renderer, file):
         mask.labels.append(NiiLabel(MASK_COLORS[label_idx], MASK_OPACITY, MASK_SMOOTHNESS))
         mask.labels[label_idx].extractor = create_mask_extractor(mask)
         add_surface_rendering(mask, label_idx, label_idx + 1)
-        # renderer.AddActor(mask.labels[label_idx].actor)
+        renderer.AddActor(mask.labels[label_idx].actor)
     return mask

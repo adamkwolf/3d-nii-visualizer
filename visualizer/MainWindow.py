@@ -21,14 +21,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
 
         # setup brain projection and slicer
         self.brain_image_prop = setup_projection(self.brain, self.renderer)
-        self.brain_slicer_props = setup_slicer(self.renderer, self.brain.reader)  # causing issues with rotation
-
-        # must add brain and mask to view last
-        n_labels = int(self.mask.reader.GetOutput().GetScalarRange()[1])
-        n_labels = n_labels if n_labels <= 10 else 10
-        for label_idx in range(n_labels):
-            self.renderer.AddActor(self.mask.labels[label_idx].actor)
-        self.renderer.AddActor(self.brain.labels[0].actor)
+        self.brain_slicer_props = setup_slicer(self.renderer, self.brain)  # causing issues with rotation
 
         # brain pickers
         self.brain_threshold_sp = self.create_new_picker(1000, 0, 5, BRAIN_THRESHOLD, self.brain_threshold_vc)
@@ -58,10 +51,6 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.setCentralWidget(self.frame)
         self.set_axial_view()
         self.interactor.Initialize()
-
-        # fix issue with rotation
-        # self.renderer.GetActiveCamera().SetFocalPoint(93.3034998178482, 124.56749975681305, 95.5)
-        # self.renderer.GetActiveCamera().SetPosition(93.3034998178482, 124.56749975681305, 801.0132293735836)
         self.show()
 
     @staticmethod
@@ -80,6 +69,9 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         render_window.AddRenderer(renderer)
         interactor.SetRenderWindow(render_window)
         interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
+
+
+
         return renderer, frame, vtk_widget, interactor, render_window
 
     def add_brain_slicer(self):
@@ -105,20 +97,47 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         brain_group_layout.addWidget(QtWidgets.QLabel("Brain Threshold"), 0, 0)
         brain_group_layout.addWidget(QtWidgets.QLabel("Brain Opacity"), 1, 0)
         brain_group_layout.addWidget(QtWidgets.QLabel("Brain Smoothness"), 2, 0)
-        brain_group_layout.addWidget(QtWidgets.QLabel("Axial Slice"), 5, 0)
-        brain_group_layout.addWidget(QtWidgets.QLabel("Coronal Slice"), 6, 0)
-        brain_group_layout.addWidget(QtWidgets.QLabel("Sagittal Slice"), 7, 0)
-        brain_group_layout.addWidget(self.brain_threshold_sp, 0, 1)
-        brain_group_layout.addWidget(self.brain_opacity_sp, 1, 1)
-        brain_group_layout.addWidget(self.brain_smoothness_sp, 2, 1)
+        brain_group_layout.addWidget(self.brain_threshold_sp, 0, 1, 1, 2)
+        brain_group_layout.addWidget(self.brain_opacity_sp, 1, 1, 1, 2)
+        brain_group_layout.addWidget(self.brain_smoothness_sp, 2, 1, 1, 2)
         brain_group_layout.addWidget(self.brain_projection_cb, 3, 0)
         brain_group_layout.addWidget(self.brain_slicer_cb, 3, 1)
         brain_group_layout.addWidget(self.create_new_separator(), 4, 0, 1, 3)
-        brain_group_layout.addWidget(QtWidgets.QSlider(Qt.Qt.Horizontal), 5, 1, 1, 2)
-        brain_group_layout.addWidget(QtWidgets.QSlider(Qt.Qt.Horizontal), 6, 1, 1, 2)
-        brain_group_layout.addWidget(QtWidgets.QSlider(Qt.Qt.Horizontal), 7, 1, 1, 2)
+        brain_group_layout.addWidget(QtWidgets.QLabel("Axial Slice"), 5, 0)
+        brain_group_layout.addWidget(QtWidgets.QLabel("Coronal Slice"), 6, 0)
+        brain_group_layout.addWidget(QtWidgets.QLabel("Sagittal Slice"), 7, 0)
+
+        # order is important
+        slicer_funcs = [self.axial_slice_changed, self.coronal_slice_changed, self.sagittal_slice_changed]
+        self.slicer_widgets = []
+        middle_values = [75, 120, 120]
+        current_label_row = 5
+        for i, func in enumerate(slicer_funcs):
+            slice_widget = QtWidgets.QSlider(Qt.Qt.Horizontal)
+            self.slicer_widgets.append(slice_widget)
+            brain_group_layout.addWidget(slice_widget, current_label_row, 1, 1, 2)
+            slice_widget.valueChanged.connect(func)
+            slice_widget.setRange(0, middle_values[i]*2)
+            slice_widget.setValue(middle_values[i])
+            current_label_row += 1
+
         brain_group_box.setLayout(brain_group_layout)
         self.grid.addWidget(brain_group_box, 0, 0, 1, 2)
+
+    def axial_slice_changed(self):
+        pos = self.slicer_widgets[0].value()
+        self.brain_slicer_props[0].SetDisplayExtent(0, 239, 0, 239, pos, pos)  # fix 239
+        self.render_window.Render()
+
+    def coronal_slice_changed(self):
+        pos = self.slicer_widgets[1].value()
+        self.brain_slicer_props[1].SetDisplayExtent(0, 239, pos, pos, 0, 239)  # fix 239
+        self.render_window.Render()
+
+    def sagittal_slice_changed(self):
+        pos = self.slicer_widgets[2].value()
+        self.brain_slicer_props[2].SetDisplayExtent(pos, pos, 0, 239, 0, 239)  # fix 239
+        self.render_window.Render()
 
     def add_mask_settings_widget(self):
         mask_settings_group_box = QtWidgets.QGroupBox("Mask Settings")
