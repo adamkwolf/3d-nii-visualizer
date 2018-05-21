@@ -72,10 +72,10 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
 
         # required to enable overlapping actors with opacity < 1.0
-        render_window.SetAlphaBitPlanes(1)
-        render_window.SetMultiSamples(0)
-        renderer.UseDepthPeelingOn()
-        renderer.SetMaximumNumberOfPeels(2)
+        # render_window.SetAlphaBitPlanes(1)
+        # render_window.SetMultiSamples(0)
+        # renderer.UseDepthPeelingOn()
+        # renderer.SetMaximumNumberOfPeels(2)
 
         return renderer, frame, vtk_widget, interactor, render_window
 
