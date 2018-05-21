@@ -22,6 +22,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         # setup brain projection and slicer
         self.brain_image_prop = setup_projection(self.brain, self.renderer)
         self.brain_slicer_props = setup_slicer(self.renderer, self.brain)  # causing issues with rotation
+        self.slicer_widgets = []
 
         # brain pickers
         self.brain_threshold_sp = self.create_new_picker(1000, 0, 5, BRAIN_THRESHOLD, self.brain_threshold_vc)
@@ -71,7 +72,10 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
 
         # required to enable overlapping actors with opacity < 1.0
-        renderer.SetUseDepthPeeling(True)
+        render_window.SetAlphaBitPlanes(1)
+        render_window.SetMultiSamples(0)
+        renderer.UseDepthPeelingOn()
+        renderer.SetMaximumNumberOfPeels(2)
 
         return renderer, frame, vtk_widget, interactor, render_window
 
@@ -110,7 +114,6 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
 
         # order is important
         slicer_funcs = [self.axial_slice_changed, self.coronal_slice_changed, self.sagittal_slice_changed]
-        self.slicer_widgets = []
         current_label_row = 5
         # data extent is array [xmin, xmax, ymin, ymax, zmin, zmax)
         # we want all the max values for the range
