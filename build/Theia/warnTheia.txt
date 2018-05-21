@@ -1,0 +1,51 @@
+missing module named resource - imported by posix, C:\Users\User\Desktop\3d-nii-visualizer\brain_tumor_3d.py
+missing module named posix - imported by os, C:\Users\User\Desktop\3d-nii-visualizer\brain_tumor_3d.py
+missing module named _posixsubprocess - imported by subprocess, C:\Users\User\Desktop\3d-nii-visualizer\brain_tumor_3d.py
+missing module named org - imported by pickle, C:\Users\User\Desktop\3d-nii-visualizer\brain_tumor_3d.py
+missing module named readline - imported by cmd, code, pdb, C:\Users\User\Desktop\3d-nii-visualizer\brain_tumor_3d.py
+excluded module named _frozen_importlib - imported by importlib, importlib.abc, C:\Users\User\Desktop\3d-nii-visualizer\brain_tumor_3d.py
+missing module named _frozen_importlib_external - imported by importlib._bootstrap, importlib, importlib.abc, C:\Users\User\Desktop\3d-nii-visualizer\brain_tumor_3d.py
+missing module named _winreg - imported by platform, C:\Users\User\Desktop\3d-nii-visualizer\brain_tumor_3d.py
+missing module named _scproxy - imported by urllib.request
+missing module named java - imported by platform, C:\Users\User\Desktop\3d-nii-visualizer\brain_tumor_3d.py
+missing module named 'java.lang' - imported by platform, C:\Users\User\Desktop\3d-nii-visualizer\brain_tumor_3d.py, xml.sax._exceptions
+missing module named vms_lib - imported by platform, C:\Users\User\Desktop\3d-nii-visualizer\brain_tumor_3d.py
+missing module named termios - imported by tty, C:\Users\User\Desktop\3d-nii-visualizer\brain_tumor_3d.py, getpass
+missing module named grp - imported by shutil, tarfile, C:\Users\User\Desktop\3d-nii-visualizer\brain_tumor_3d.py
+missing module named pwd - imported by posixpath, shutil, tarfile, http.server, webbrowser, C:\Users\User\Desktop\3d-nii-visualizer\brain_tumor_3d.py, netrc, getpass
+missing module named _dummy_threading - imported by dummy_threading, C:\Users\User\Desktop\3d-nii-visualizer\brain_tumor_3d.py
+missing module named 'org.python' - imported by copy, C:\Users\User\Desktop\3d-nii-visualizer\brain_tumor_3d.py, xml.sax
+missing module named 'PySide.QtCore' - imported by vtk.qt.QVTKRenderWindowInteractor
+missing module named 'PySide.QtGui' - imported by vtk.qt.QVTKRenderWindowInteractor
+missing module named 'PySide.QtOpenGL' - imported by vtk.qt.QVTKRenderWindowInteractor
+missing module named 'PyQt4.QtCore' - imported by vtk.qt.QVTKRenderWindowInteractor
+missing module named 'PyQt4.QtGui' - imported by vtk.qt.QVTKRenderWindowInteractor
+missing module named 'PyQt4.QtOpenGL' - imported by vtk.qt.QVTKRenderWindowInteractor
+missing module named PySide - imported by vtk.qt.QVTKRenderWindowInteractor
+missing module named PyQt4 - imported by vtk.qt.QVTKRenderWindowInteractor
+missing module named vtkViewsInfovisPython - imported by vtk.vtkViewsInfovis
+missing module named vtkIOTecplotTablePython - imported by vtk.vtkIOTecplotTable
+missing module named vtkIOMINCPython - imported by vtk.vtkIOMINC
+missing module named vtkIOInfovisPython - imported by vtk.vtkIOInfovis
+missing module named vtkIOImportPython - imported by vtk.vtkIOImport
+missing module named vtkIOExportOpenGL2Python - imported by vtk.vtkIOExportOpenGL2
+missing module named vtkIOExportPython - imported by vtk.vtkIOExport
+missing module named vtkRenderingGL2PSOpenGL2Python - imported by vtk.vtkRenderingGL2PSOpenGL2
+missing module named vtkGeovisCorePython - imported by vtk.vtkGeovisCore
+missing module named vtkInfovisLayoutPython - imported by vtk.vtkInfovisLayout
+missing module named vtkImagingHybridPython - imported by vtk.vtkImagingHybrid
+missing module named vtkFiltersHybridPython - imported by vtk.vtkFiltersHybrid
+missing module named vtkFiltersFlowPathsPython - imported by vtk.vtkFiltersFlowPaths
+missing module named vtkDomainsChemistryPython - imported by vtk.vtkDomainsChemistry
+missing module named vtkChartsCorePython - imported by vtk.vtkChartsCore
+missing module named vtkInfovisCorePython - imported by vtk.vtkInfovisCore
+missing module named vtkViewsKitPython - imported by vtk.vtkViewsKit
+missing module named vtkInteractionKitPython - imported by vtk.vtkInteractionKit
+missing module named vtkWrappingKitPython - imported by vtk.vtkWrappingKit
+missing module named vtkParallelKitPython - imported by vtk.vtkParallelKit
+missing module named vtkOpenGLKitPython - imported by vtk.vtkOpenGLKit
+missing module named vtkIOKitPython - imported by vtk.vtkIOKit
+missing module named vtkRenderingKitPython - imported by vtk.vtkRenderingKit
+missing module named vtkImagingKitPython - imported by vtk.vtkImagingKit
+missing module named vtkFiltersKitPython - imported by vtk.vtkFiltersKit
+missing module named vtkCommonKitPython - imported by vtk.vtkCommonKit
