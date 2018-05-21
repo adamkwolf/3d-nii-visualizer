@@ -2,19 +2,21 @@
 
 <img src="https://github.com/adamkwolf/3d-nii-visualizer/blob/master/images/visualization.png" style="width: 100px;"/>
 
-### Setup
+### Run with Python
 
-1.  Install `virtualenv` and create a new environment <env-name>
-2.  Activate the environemnt `source <env-name>/bin/activate`
-3.  Install the dependencies (PyQt5, vtk, and sip) `pip install -r requirements.txt`
-4.  Use `./sample_data` or add your datasets in the root directory and modify `BRAIN_FILE` and `TUMOR_FILE` path in `brain_tumor_3d.py`
-5.  Start the program `python brain_tumor_3d.py`
+1.  Create a virtual environment. Mac can use virtualenv or conda. Windows must use conda.
+2.  Install the dependencies (PyQt5, vtk, and sip) `pip install PyQt5 vtk`
+3.  Start the program `python brain_tumor_3d.py -i <path/to/scan.nii.gz> -m <path/to/mask.nii.gz>`
 
-### PyInstaller
-* Mac: `sudo pyinstaller brain_tumor_3d.py  --onefile --windowed --osx-bundle-identifier=Theia --icon=icon.icns --name="Theia" -y --clean`
-* Windows: `coming soon`
+### Run prebuilt executables
+Go into project directory and run `Theia -i <path/to/scan.nii.gz> -m <path/to/mask.nii.gz>`
+
+### Generate PyInstaller Binaries
+**Note**: Must modify the paths in .spec file to match your project directory
+* Mac: `pyinstaller Theia_Mac.spec`
+* Windows: `pyinstaller Theia_Windows.spec`
+
 ### Test
-
 * `python -m pytest`
 
 ### Acknowledgements
