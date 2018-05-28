@@ -28,6 +28,7 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.brain_threshold_sp = self.create_new_picker(1000, 0, 5, BRAIN_THRESHOLD, self.brain_threshold_vc)
         self.brain_opacity_sp = self.create_new_picker(1.0, 0.0, 0.1, BRAIN_OPACITY, self.brain_opacity_vc)
         self.brain_smoothness_sp = self.create_new_picker(1000, 100, 100, BRAIN_SMOOTHNESS, self.brain_smoothness_vc)
+        self.brain_lut_sp = self.create_new_picker(3.0, 0.0, 0.1, 2.0, self.lut_value_changed)
         self.brain_projection_cb = self.add_brain_projection()
         self.brain_slicer_cb = self.add_brain_slicer()
 
@@ -72,12 +73,22 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
 
         # required to enable overlapping actors with opacity < 1.0
+        # this is causing some issues with flashing objects
         # render_window.SetAlphaBitPlanes(1)
         # render_window.SetMultiSamples(0)
         # renderer.UseDepthPeelingOn()
         # renderer.SetMaximumNumberOfPeels(2)
 
         return renderer, frame, vtk_widget, interactor, render_window
+
+    def lut_value_changed(self):
+        lut = self.brain.image_mapper.GetLookupTable()
+        new_lut_value = self.brain_lut_sp.value()
+        lut.SetValueRange(0.0, new_lut_value)
+        lut.Build()
+        self.brain.image_mapper.SetLookupTable(lut)
+        self.brain.image_mapper.Update()
+        self.render_window.Render()
 
     def add_brain_slicer(self):
         slicer_cb = QtWidgets.QCheckBox("Slicer")
@@ -102,19 +113,21 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         brain_group_layout.addWidget(QtWidgets.QLabel("Brain Threshold"), 0, 0)
         brain_group_layout.addWidget(QtWidgets.QLabel("Brain Opacity"), 1, 0)
         brain_group_layout.addWidget(QtWidgets.QLabel("Brain Smoothness"), 2, 0)
+        brain_group_layout.addWidget(QtWidgets.QLabel("Image Intensity"), 3, 0)
         brain_group_layout.addWidget(self.brain_threshold_sp, 0, 1, 1, 2)
         brain_group_layout.addWidget(self.brain_opacity_sp, 1, 1, 1, 2)
         brain_group_layout.addWidget(self.brain_smoothness_sp, 2, 1, 1, 2)
-        brain_group_layout.addWidget(self.brain_projection_cb, 3, 0)
-        brain_group_layout.addWidget(self.brain_slicer_cb, 3, 1)
-        brain_group_layout.addWidget(self.create_new_separator(), 4, 0, 1, 3)
-        brain_group_layout.addWidget(QtWidgets.QLabel("Axial Slice"), 5, 0)
-        brain_group_layout.addWidget(QtWidgets.QLabel("Coronal Slice"), 6, 0)
-        brain_group_layout.addWidget(QtWidgets.QLabel("Sagittal Slice"), 7, 0)
+        brain_group_layout.addWidget(self.brain_lut_sp, 3, 1, 1, 2)
+        brain_group_layout.addWidget(self.brain_projection_cb, 4, 0)
+        brain_group_layout.addWidget(self.brain_slicer_cb, 4, 1)
+        brain_group_layout.addWidget(self.create_new_separator(), 5, 0, 1, 3)
+        brain_group_layout.addWidget(QtWidgets.QLabel("Axial Slice"), 6, 0)
+        brain_group_layout.addWidget(QtWidgets.QLabel("Coronal Slice"), 7, 0)
+        brain_group_layout.addWidget(QtWidgets.QLabel("Sagittal Slice"), 8, 0)
 
         # order is important
         slicer_funcs = [self.axial_slice_changed, self.coronal_slice_changed, self.sagittal_slice_changed]
-        current_label_row = 5
+        current_label_row = 6
         # data extent is array [xmin, xmax, ymin, ymax, zmin, zmax)
         # we want all the max values for the range
         extent_index = 5

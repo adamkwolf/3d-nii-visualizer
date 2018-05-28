@@ -4,3 +4,4 @@ class NiiObject:
         self.reader = None
         self.extent = ()
         self.labels = []
+        self.image_mapper = None

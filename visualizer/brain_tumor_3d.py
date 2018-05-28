@@ -31,6 +31,11 @@ if __name__ == "__main__":
 
     redirect_vtk_messages()
     app = QtWidgets.QApplication(sys.argv)
+
+    # with open("./visualizer/captk.qss") as css:
+    #     read_css = css.read()
+    #     app.setStyleSheet(read_css)
+
     app.BRAIN_FILE = args.i
     app.MASK_FILE = args.m
     window = MainWindow(app)
