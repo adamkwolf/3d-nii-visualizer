@@ -38,7 +38,7 @@ def create_brain_extractor(brain):
     """
     brain_extractor = vtk.vtkFlyingEdges3D()
     brain_extractor.SetInputConnection(brain.reader.GetOutputPort())
-    brain_extractor.SetValue(0, BRAIN_THRESHOLD)
+    # brain_extractor.SetValue(0, sum(brain.scalar_range)/2)
     return brain_extractor
 
 
@@ -249,8 +249,9 @@ def setup_brain(renderer, file):
     view_colors.SetLookupTable(bw_lut)
     view_colors.Update()
     brain.image_mapper = view_colors
+    brain.scalar_range = scalar_range
 
-    add_surface_rendering(brain, 0, 20)
+    add_surface_rendering(brain, 0, sum(scalar_range)/2)  # render index, default extractor value
     renderer.AddActor(brain.labels[0].actor)
     return brain
 

@@ -5,3 +5,4 @@ class NiiObject:
         self.extent = ()
         self.labels = []
         self.image_mapper = None
+        self.scalar_range = None

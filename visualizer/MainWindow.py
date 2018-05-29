@@ -25,7 +25,8 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
         self.slicer_widgets = []
 
         # brain pickers
-        self.brain_threshold_sp = self.create_new_picker(1000, 0, 5, BRAIN_THRESHOLD, self.brain_threshold_vc)
+        self.brain_threshold_sp = self.create_new_picker(self.brain.scalar_range[1], self.brain.scalar_range[0], 5.0,
+                                                         sum(self.brain.scalar_range) / 2, self.brain_threshold_vc)
         self.brain_opacity_sp = self.create_new_picker(1.0, 0.0, 0.1, BRAIN_OPACITY, self.brain_opacity_vc)
         self.brain_smoothness_sp = self.create_new_picker(1000, 100, 100, BRAIN_SMOOTHNESS, self.brain_smoothness_vc)
         self.brain_lut_sp = self.create_new_picker(3.0, 0.0, 0.1, 2.0, self.lut_value_changed)
@@ -98,7 +99,10 @@ class MainWindow(QtWidgets.QMainWindow, QtWidgets.QApplication):
     def add_vtk_window_widget(self):
         base_brain_file = os.path.basename(self.app.BRAIN_FILE)
         base_mask_file = os.path.basename(self.app.MASK_FILE)
-        object_title = str.format("Brain: {}          Mask: {}", base_brain_file, base_mask_file)
+        object_title = "Brain: {0} (min: {1:.2f}, max: {2:.2f})        Mask: {3}".format(base_brain_file,
+                                                                                         self.brain.scalar_range[0],
+                                                                                         self.brain.scalar_range[1],
+                                                                                         base_mask_file)
         object_group_box = QtWidgets.QGroupBox(object_title)
         object_layout = QtWidgets.QVBoxLayout()
         object_layout.addWidget(self.vtk_widget)
