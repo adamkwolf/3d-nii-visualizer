@@ -8,10 +8,6 @@
 2.  Install the dependencies (PyQt5, vtk, and sip) `pip install PyQt5 vtk`
 3.  Start the program `python ./visualizer/brain_tumor_3d.py -i "./sample_data/10labels_example/T1CE.nii.gz" -m "./sample_data/10labels_example/mask.nii.gz"`
 
-### Run prebuilt executables
-Go into project directory and run `./dist/Theia -i "./sample_data/10labels_example/T1CE.nii.gz" -m "./sample_data/10labels_example/mask.nii.gz"
-`
-
 ### Generate PyInstaller Binaries
 **Note**: Must modify the paths in .spec file to match your project directory
 * Mac: `pyinstaller Theia_Mac.spec`
