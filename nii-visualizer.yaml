@@ -1,0 +1,41 @@
+name: nii-visualizer
+channels:
+  - defaults
+dependencies:
+  - _libgcc_mutex=0.1=main
+  - _openmp_mutex=5.1=1_gnu
+  - ca-certificates=2023.08.22=h06a4308_0
+  - ld_impl_linux-64=2.38=h1181459_1
+  - libffi=3.4.4=h6a678d5_0
+  - libgcc-ng=11.2.0=h1234567_1
+  - libgomp=11.2.0=h1234567_1
+  - libstdcxx-ng=11.2.0=h1234567_1
+  - ncurses=6.4=h6a678d5_0
+  - openssl=3.0.12=h7f8727e_0
+  - pip=23.3.1=py38h06a4308_0
+  - python=3.8.18=h955ad1f_0
+  - readline=8.2=h5eee18b_0
+  - setuptools=68.2.2=py38h06a4308_0
+  - sqlite=3.41.2=h5eee18b_0
+  - tk=8.6.12=h1ccaba5_0
+  - wheel=0.41.2=py38h06a4308_0
+  - xz=5.4.5=h5eee18b_0
+  - zlib=1.2.13=h5eee18b_0
+  - pip:
+      - contourpy==1.1.1
+      - cycler==0.12.1
+      - fonttools==4.46.0
+      - importlib-resources==6.1.1
+      - kiwisolver==1.4.5
+      - matplotlib==3.7.4
+      - numpy==1.24.4
+      - packaging==23.2
+      - pillow==10.1.0
+      - pyparsing==3.1.1
+      - pyqt5==5.15.10
+      - pyqt5-qt5==5.15.2
+      - pyqt5-sip==12.13.0
+      - python-dateutil==2.8.2
+      - six==1.16.0
+      - vtk==9.3.0
+      - zipp==3.17.0
