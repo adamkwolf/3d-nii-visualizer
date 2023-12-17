@@ -2,18 +2,21 @@
 
 <img src="https://github.com/adamkwolf/3d-nii-visualizer/blob/master/images/visualization.png" style="width: 100px;"/>
 
-### Run with Python
+### install & Run with Python
 
-1.  Create a virtual environment. Mac can use virtualenv or conda. Windows must use conda.
-2.  Install the dependencies (PyQt5, vtk, and sip) `pip install PyQt5 vtk`
-3.  Start the program `python ./visualizer/brain_tumor_3d.py -i "./sample_data/10labels_example/T1CE.nii.gz" -m "./sample_data/10labels_example/mask.nii.gz"`
+1. Create a virtual environment at anaconda. `bash setup_env.sh`
+2. Install the dependencies (PyQt5, vtk, and sip) `pip install PyQt5 vtk`
+3. Start the program `bash run.sh` or  `python ./visualizer/brain_tumor_3d.py -i "data.nii.gz" -m "data_mask.nii.gz"`
 
 ### Generate PyInstaller Binaries
+
 **Note**: Must modify the paths in .spec file to match your project directory
+
 * Mac: `pyinstaller Theia_Mac.spec`
 * Windows: `pyinstaller Theia_Windows.spec`
 
 ### Test
+
 * `python -m pytest`
 
 ### Acknowledgements
