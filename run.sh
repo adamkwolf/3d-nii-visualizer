@@ -1,0 +1,1 @@
+python ./visualizer/brain_tumor_3d.py -i "sample_data/prostate_00.nii.gz" -m "sample_data/prostate_00_mask.nii.gz" &
