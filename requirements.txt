@@ -1,3 +1,4 @@
-PyInstaller==3.3.1
-PyQt5==5.10.1
-vtk==8.1.0
+PyInstaller>=6.9.0
+pyside6>=6.7.2
+vtk>=9.3.1
+qt-material

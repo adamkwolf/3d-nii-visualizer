@@ -63,7 +63,8 @@ def create_polygon_reducer(extractor):
     :return: the decimated volume
     """
     reducer = vtk.vtkDecimatePro()
-    reducer.AddObserver('ErrorEvent', error_observer)  # throws an error event if there is no data to decimate
+    # throws an error event if there is no data to decimate
+    reducer.AddObserver('ErrorEvent', error_observer)
     reducer.SetInputConnection(extractor.GetOutputPort())
     reducer.SetTargetReduction(0.5)  # magic number
     reducer.PreserveTopologyOn()
@@ -160,11 +161,14 @@ def add_surface_rendering(nii_object, label_idx, label_value):
 
     # if the cell size is 0 then there is no label_idx data
     if nii_object.labels[label_idx].extractor.GetOutput().GetMaxCellSize():
-        reducer = create_polygon_reducer(nii_object.labels[label_idx].extractor)
-        smoother = create_smoother(reducer, nii_object.labels[label_idx].smoothness)
+        reducer = create_polygon_reducer(
+            nii_object.labels[label_idx].extractor)
+        smoother = create_smoother(
+            reducer, nii_object.labels[label_idx].smoothness)
         normals = create_normals(smoother)
         actor_mapper = create_mapper(normals)
-        actor_property = create_property(nii_object.labels[label_idx].opacity, nii_object.labels[label_idx].color)
+        actor_property = create_property(
+            nii_object.labels[label_idx].opacity, nii_object.labels[label_idx].color)
         actor = create_actor(actor_mapper, actor_property)
         nii_object.labels[label_idx].actor = actor
         nii_object.labels[label_idx].smoother = smoother
@@ -232,7 +236,8 @@ def setup_brain(renderer, file):
     brain = NiiObject()
     brain.file = file
     brain.reader = read_volume(brain.file)
-    brain.labels.append(NiiLabel(BRAIN_COLORS[0], BRAIN_OPACITY, BRAIN_SMOOTHNESS))
+    brain.labels.append(
+        NiiLabel(BRAIN_COLORS[0], BRAIN_OPACITY, BRAIN_SMOOTHNESS))
     brain.labels[0].extractor = create_brain_extractor(brain)
     brain.extent = brain.reader.GetDataExtent()
 
@@ -251,7 +256,8 @@ def setup_brain(renderer, file):
     brain.image_mapper = view_colors
     brain.scalar_range = scalar_range
 
-    add_surface_rendering(brain, 0, sum(scalar_range)/2)  # render index, default extractor value
+    # render index, default extractor value
+    add_surface_rendering(brain, 0, sum(scalar_range)/2)
     renderer.AddActor(brain.labels[0].actor)
     return brain
 
@@ -265,7 +271,8 @@ def setup_mask(renderer, file):
     n_labels = n_labels if n_labels <= 10 else 10
 
     for label_idx in range(n_labels):
-        mask.labels.append(NiiLabel(MASK_COLORS[label_idx], MASK_OPACITY, MASK_SMOOTHNESS))
+        mask.labels.append(
+            NiiLabel(MASK_COLORS[label_idx], MASK_OPACITY, MASK_SMOOTHNESS))
         mask.labels[label_idx].extractor = create_mask_extractor(mask)
         add_surface_rendering(mask, label_idx, label_idx + 1)
         renderer.AddActor(mask.labels[label_idx].actor)
